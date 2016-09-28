@@ -1,0 +1,12 @@
+Licence for Textures, Models and Sounds
+---------------------------------------
+
+CC-BY-SA 3.0 UNPORTED. Created by DS-minetest
+
+
+--------------------------------------
+
+Licence for code
+---------------------------------------
+
+CC0
