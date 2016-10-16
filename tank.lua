@@ -8,8 +8,8 @@ minetest.register_entity(
 		visual = "mesh",
 		visual_size = {x=1, y=1},
 		mesh = "mvehicles_tank_exhauster.b3d",
-		textures = {"mvehicles_tank.png"}, -- number of required textures depends on visual
-		colors = {}, -- number of required colors depends on visual
+		textures = {"mvehicles_tank.png"},
+		colors = {},
 		spritediv = {x=1, y=1},
 		initial_sprite_basepos = {x=0, y=0},
 		is_visible = true,
@@ -31,6 +31,7 @@ minetest.register_entity(
 )
 
 
+
 minetest.register_entity(
 	"mvehicles:tank_cannon",
 	{
@@ -41,8 +42,8 @@ minetest.register_entity(
 		visual = "mesh",
 		visual_size = {x=1, y=1},
 		mesh = "mvehicles_tank_cannon_tt.b3d",
-		textures = {"mvehicles_tank.png"}, -- number of required textures depends on visual
-		colors = {}, -- number of required colors depends on visual
+		textures = {"mvehicles_tank.png"},
+		colors = {},
 		spritediv = {x=1, y=1},
 		initial_sprite_basepos = {x=0, y=0},
 		is_visible = true,
@@ -68,6 +69,7 @@ minetest.register_entity(
 )
 
 
+
 minetest.register_entity(
 	"mvehicles:tank_top",
 	{
@@ -78,8 +80,8 @@ minetest.register_entity(
 		visual = "mesh",
 		visual_size = {x=1, y=1},
 		mesh = "mvehicles_tank_top_tt.b3d",
-		textures = {"mvehicles_tank.png"}, -- number of required textures depends on visual
-		colors = {}, -- number of required colors depends on visual
+		textures = {"mvehicles_tank.png"},
+		colors = {},
 		spritediv = {x=1, y=1},
 		initial_sprite_basepos = {x=0, y=0},
 		is_visible = true,
@@ -105,6 +107,7 @@ minetest.register_entity(
 )
 
 
+
 minetest.register_entity(
 	"mvehicles:tank",
 	{
@@ -115,8 +118,8 @@ minetest.register_entity(
 		visual = "mesh",
 		visual_size = {x=10, y=10},
 		mesh = "mvehicles_tank_bottom.b3d",
-		textures = {"mvehicles_tank.png"}, -- number of required textures depends on visual
-		colors = {}, -- number of required colors depends on visual
+		textures = {"mvehicles_tank.png"},
+		colors = {},
 		spritediv = {x=1, y=1},
 		initial_sprite_basepos = {x=0, y=0},
 		is_visible = true,
@@ -128,9 +131,9 @@ minetest.register_entity(
 			--self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
 			--self.top_yaw_anim = 280
 			--if staticdata == "" then
-				self.top = minetest.add_entity(self.object:getpos(), "mvehicles:tank_top")
-				self.cannon = minetest.add_entity(self.object:getpos(), "mvehicles:tank_cannon")
-				self.exhauster = minetest.add_entity(self.object:getpos(), "mvehicles:tank_exhauster")
+			self.top = minetest.add_entity(self.object:getpos(), "mvehicles:tank_top")
+			self.cannon = minetest.add_entity(self.object:getpos(), "mvehicles:tank_cannon")
+			self.exhauster = minetest.add_entity(self.object:getpos(), "mvehicles:tank_exhauster")
 			--else
 				--local topn = minetest.get_objects_inside_radius(self.object:getpos(), 1)[1]
 				--top = get_staticdata
@@ -297,11 +300,10 @@ minetest.register_entity(
 					--  ^ Size of element in pixels
 				})
 
-				self.exhaust = minetest.add_particlespawner( --hoping that pull request "Attached Particle Spawners #4409" gets merged
+				self.exhaust = minetest.add_particlespawner(
 					{
 						amount = 10,
 						time = 0,
-						--  ^ If time is 0 has infinite lifespan and spawns the amount on a per-second base
 						minpos = {x=0, y=0.5, z=0},
 						maxpos = {x=0, y=0.5, z=0},
 						minvel = {x=-0.1, y=1, z=-0.1},
@@ -312,24 +314,16 @@ minetest.register_entity(
 						maxexptime = 2,
 						minsize = 1,
 						maxsize = 3,
-						--  ^ The particle's properties are random values in between the bounds:
-						--  ^ minpos/maxpos, minvel/maxvel (velocity), minacc/maxacc (acceleration),
-						--  ^ minsize/maxsize, minexptime/maxexptime (expirationtime)
 						collisiondetection = true,
-						--  ^ collisiondetection: if true uses collision detection
 						collision_removal = false,
-						--  ^ collision_removal: if true then particle is removed when it collides,
-						--  ^ requires collisiondetection = true to have any effect
 						attached = self.exhauster,
-						-- ^ attached: if defined, makes particle positions relative to this object.
 						vertical = false,
 						--  ^ vertical: if true faces player using y axis only
 						texture = "tnt_smoke.png",
-						--  ^ Uses texture (string)
 						--playername = "singleplayer"
 						--  ^ Playername is optional, if specified spawns particle only on the player's client
 					})
-				--self.exhaust:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
+
 				self.engine_sound = minetest.sound_play("default_cool_lava", --better sound needed
 					{
 						object = self.object,
