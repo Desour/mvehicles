@@ -142,7 +142,7 @@ minetest.register_entity(
 				self.top:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 			end
 			if self.cannon then
-				self.cannon:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
+				self.cannon:set_attach(self.top, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 			end
 			if self.exhauster then
 				self.exhauster:set_attach(self.object, "", {x=-0.7,y=0.8,z=-1.3}, {x=0,y=0,z=0})
@@ -425,15 +425,24 @@ minetest.register_entity(
 				self.shooting_range = 0
 			end]]
 
-			if self.cannon then
+			if self.cannon and not ctrl.sneak then
+				self.cannon:set_bone_position("top_master", {x=0,y=0,z=0}, {x=0,y=-math.deg(self.driver:get_look_horizontal()-yaw),z=0})
+				self.cannon:set_bone_position(
+					"cannon_barrel",
+					{x=0,y=1.2,z=0},
+					{x=math.max(-100,math.min(-60,(-math.deg(self.driver:get_look_vertical())-90))),y=0,z=0}
+				)
+
+				--minetest.chat_send_all(-math.deg(self.driver:get_look_vertical())-90)
 				--local cannon_pitch = (self.driver:get_look_vertical()--[[-math.pi*0.5]])/(2*math.pi)*360
-				local cannon_pitch = math.deg(self.driver:get_look_vertical())
+				--[[local cannon_pitch = math.deg(self.driver:get_look_vertical())
 				local cannon_pitch_anim = ((-1) * cannon_pitch) + 370
-				self.cannon:set_animation({x=cannon_pitch_anim,y=cannon_pitch_anim}, 0, 0)
+				self.cannon:set_animation({x=cannon_pitch_anim,y=cannon_pitch_anim}, 0, 0)]]
 				--print(cannon_pitch_anim)
 			end
 
-			--if self.top then
+			if self.top and not ctrl.sneak then
+				self.top:set_bone_position("top_master", {x=0,y=0,z=0}, {x=0,y=-math.deg(self.driver:get_look_horizontal()-yaw),z=0})
 
 				--local top_yaw = (self.driver:get_look_horizontal()--[[-math.pi*0.5]])/(2*math.pi)*360
 				--local top_yaw_anim = (top_yaw - (yaw*180/math.pi) + 360)%360 + 280
@@ -450,7 +459,7 @@ minetest.register_entity(
 				elseif self.top_yaw <= 0 then
 					self.top_yaw = self.top_yaw+360
 				end]]
-			--end
+			end
 
 			if self.shooting_range then
 				self.shooting_range_hud_1 = self.shooting_range
