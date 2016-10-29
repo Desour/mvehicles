@@ -88,6 +88,7 @@ minetest.register_entity(
 		is_visible = true,
 		makes_footstep_sound = false,
 		automatic_rotate = false,
+		stepheight = 1.5,
 
 
 		on_activate = function(self, staticdata)
@@ -322,6 +323,7 @@ minetest.register_entity(
 				--tnt_explode(pos, 3, 1, 1)
 			--end
 			--if not ctrl.sneak then
+			if vel.y == 0 then
 				if ctrl.left then
 					yaw = yaw + dtime
 					self.object:set_animation({x=80, y=100}, 30, 0)
@@ -347,24 +349,25 @@ minetest.register_entity(
 					self.object:set_animation({x=0, y=0}, 0, 0)
 				end]]
 			--end
-			if turned then
-				--self.object:setvelocity({x=0, y=vel.y, z=0})
-				self.object:setyaw((yaw+2*math.pi)%(2*math.pi))
-			else
-				if ctrl.up --[[and not turned]] then
-					self.object:setvelocity({x=math.cos(yaw+math.pi/2)*2, y=vel.y, z=math.sin(yaw+math.pi/2)*2})
-					self.object:set_animation({x=0, y=20}, 30, 0)
-					moved = true
-				elseif ctrl.down --[[and not turned]] then
-					self.object:setvelocity({x=math.cos(yaw+math.pi/2)*-1, y=vel.y, z=math.sin(yaw+math.pi/2)*-1})
-					self.object:set_animation({x=20, y=40}, 15, 0)
-					moved = true
+				if turned then
+					--self.object:setvelocity({x=0, y=vel.y, z=0})
+					self.object:setyaw((yaw+2*math.pi)%(2*math.pi))
 				else
-					--self:stop(vel)
-					moved = false
-				end
-				if ctrl.jump and vel.y == 0 --[[and not turned]] then
-					self.object:setvelocity({x=vel.x, y=4.7, z=vel.z})
+					if ctrl.up --[[and not turned]] then
+						self.object:setvelocity({x=math.cos(yaw+math.pi/2)*2, y=vel.y, z=math.sin(yaw+math.pi/2)*2})
+						self.object:set_animation({x=0, y=20}, 30, 0)
+						moved = true
+					elseif ctrl.down --[[and not turned]] then
+						self.object:setvelocity({x=math.cos(yaw+math.pi/2)*-1, y=vel.y, z=math.sin(yaw+math.pi/2)*-1})
+						self.object:set_animation({x=20, y=40}, 15, 0)
+						moved = true
+					else
+						--self:stop(vel)
+						moved = false
+					end
+					if ctrl.jump and vel.y == 0 --[[and not turned]] then
+						--self.object:setvelocity({x=vel.x, y=4.7, z=vel.z})
+					end
 				end
 			end
 
