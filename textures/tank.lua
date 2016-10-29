@@ -32,6 +32,43 @@ minetest.register_entity(
 
 
 
+minetest.register_entity(
+	"mvehicles:tank_cannon",
+	{
+		hp_max = 1,
+		physical = false,
+		weight = 5,
+		collisionbox = {0,0,0, 0,0,0},
+		visual = "mesh",
+		visual_size = {x=1, y=1},
+		mesh = "mvehicles_tank_cannon_tt.b3d",
+		textures = {"mvehicles_tank.png"},
+		colors = {},
+		spritediv = {x=1, y=1},
+		initial_sprite_basepos = {x=0, y=0},
+		is_visible = true,
+		makes_footstep_sound = false,
+		automatic_rotate = false,
+
+		on_step = function(self, staticdata)
+			if staticdata ~= "" then
+				if not self.object:get_attach() then
+					self.object:remove()
+				end
+			end
+		end,
+
+		on_activate = function(self, staticdata)
+			self.object:set_animation({x=280, y=280}, 0, 0)
+		end,
+
+		get_staticdata = function(self)
+			return "activated"
+		end
+	}
+)
+
+
 
 minetest.register_entity(
 	"mvehicles:tank_top",
@@ -42,7 +79,7 @@ minetest.register_entity(
 		collisionbox = {0,0,0, 0,0,0},
 		visual = "mesh",
 		visual_size = {x=1, y=1},
-		mesh = "mvehicles_tank_top.b3d",
+		mesh = "mvehicles_tank_top_tt.b3d",
 		textures = {"mvehicles_tank.png"},
 		colors = {},
 		spritediv = {x=1, y=1},
@@ -92,10 +129,20 @@ minetest.register_entity(
 
 		on_activate = function(self, staticdata)
 			--self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
+			--self.top_yaw_anim = 280
+			--if staticdata == "" then
 			self.top = minetest.add_entity(self.object:getpos(), "mvehicles:tank_top")
+			self.cannon = minetest.add_entity(self.object:getpos(), "mvehicles:tank_cannon")
 			self.exhauster = minetest.add_entity(self.object:getpos(), "mvehicles:tank_exhauster")
+			--else
+				--local topn = minetest.get_objects_inside_radius(self.object:getpos(), 1)[1]
+				--top = get_staticdata
+			--end
 			if self.top then
 				self.top:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
+			end
+			if self.cannon then
+				self.cannon:set_attach(self.top, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 			end
 			if self.exhauster then
 				self.exhauster:set_attach(self.object, "", {x=-0.7,y=0.8,z=-1.3}, {x=0,y=0,z=0})
@@ -282,7 +329,7 @@ minetest.register_entity(
 						object = self.object,
 						gain = 0.5, -- default
 						max_hear_distance = 32, -- default, uses an euclidean metric
-						loop = true,
+						loop = true, -- only sounds connected to objects can be looped
 					})
 
 			end
@@ -378,6 +425,13 @@ minetest.register_entity(
 				self.shooting_range = 0
 			end]]
 
+			if self.cannon and not ctrl.sneak then
+				self.cannon:set_bone_position("top_master", {x=0,y=0,z=0}, {x=0,y=-math.deg(self.driver:get_look_horizontal()-yaw),z=0})
+				self.cannon:set_bone_position(
+					"cannon_barrel",
+					{x=0,y=1.2,z=0},
+					{x=math.max(-100,math.min(-60,(-math.deg(self.driver:get_look_vertical())-90))),y=0,z=0}
+				)
 
 				--minetest.chat_send_all(-math.deg(self.driver:get_look_vertical())-90)
 				--local cannon_pitch = (self.driver:get_look_vertical()--[[-math.pi*0.5]])/(2*math.pi)*360
@@ -385,14 +439,10 @@ minetest.register_entity(
 				local cannon_pitch_anim = ((-1) * cannon_pitch) + 370
 				self.cannon:set_animation({x=cannon_pitch_anim,y=cannon_pitch_anim}, 0, 0)]]
 				--print(cannon_pitch_anim)
+			end
 
 			if self.top and not ctrl.sneak then
 				self.top:set_bone_position("top_master", {x=0,y=0,z=0}, {x=0,y=-math.deg(self.driver:get_look_horizontal()-yaw),z=0})
-				self.top:set_bone_position(
-					"cannon_barrel",
-					{x=0,y=1.2,z=0},
-					{x=math.max(-100,math.min(-60,(-math.deg(self.driver:get_look_vertical())-90))),y=0,z=0}
-				)
 
 				--local top_yaw = (self.driver:get_look_horizontal()--[[-math.pi*0.5]])/(2*math.pi)*360
 				--local top_yaw_anim = (top_yaw - (yaw*180/math.pi) + 360)%360 + 280
