@@ -1,4 +1,34 @@
 minetest.register_entity(
+	"mvehicles:tank_shoot",
+	{
+		hp_max = 1,
+		physical = true,
+		collide_with_objects = false,
+		weight = 5,
+		collisionbox = {-0.25,-0.25,-0.25, 0.25,0.25,0.25},
+		visual ="sprite",	--"cube"/"sprite"/"upright_sprite"/"mesh"/"wielditem",
+		visual_size = {x=1, y=1},
+		textures = {"heart.png"},
+		colors = {},
+		spritediv = {x=1, y=1},
+		initial_sprite_basepos = {x=0, y=0},
+		is_visible = true,
+		makes_footstep_sound = false,
+		automatic_rotate = false,
+
+		on_activate = function(self, staticdata)
+			if staticdata ~= "" then
+				self.object:remove()
+			end
+		end,
+
+		get_staticdata = function(self)
+			return "activated"
+		end
+	}
+)
+
+minetest.register_entity(
 	"mvehicles:tank_exhauster",
 	{
 		hp_max = 1,
@@ -206,7 +236,7 @@ minetest.register_entity(
 					--  ^ Size of element in pixels
 				})
 
-				self.shooting_range = 48
+				self.shooting_range = 1
 
 
 				--[[local shooting_range_2 = ((30 - shooting_range_1)^2)^0.5
@@ -367,6 +397,16 @@ minetest.register_entity(
 					end
 					if ctrl.jump and vel.y == 0 --[[and not turned]] then
 						--self.object:setvelocity({x=vel.x, y=4.7, z=vel.z})
+						local shoot = minetest.add_entity(vector.add(self.object:getpos(), {x=0,y=1.2,z=0}), "mvehicles:tank_shoot")
+						shoot:setvelocity(
+							{
+								x=(math.cos(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range),
+								y=(math.cos(math.rad(-self.cannon_direction_vertical)))*self.shooting_range,
+								z=(math.sin(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range)
+							}
+						)
+						--minetest.chat_send_all("{x="..math.rad(math.sin(-self.cannon_direction_vertical))*self.shooting_range..", y="..math.rad(math.cos(-self.cannon_direction_vertical))*self.shooting_range.."}")
+						--minetest.chat_send_all(self.cannon_direction_vertical)
 					end
 				end
 			end
@@ -390,11 +430,13 @@ minetest.register_entity(
 				--print(cannon_pitch_anim)
 
 			if self.top and not ctrl.sneak then
-				self.top:set_bone_position("top_master", {x=0,y=0,z=0}, {x=0,y=-math.deg(self.driver:get_look_horizontal()-yaw),z=0})
+				self.cannon_direction_horizontal = self.driver:get_look_horizontal()
+				self.top:set_bone_position("top_master", {x=0,y=0,z=0}, {x=0,y=-math.deg(self.cannon_direction_horizontal-yaw),z=0})
+				self.cannon_direction_vertical = math.max(-100,math.min(-60,(-math.deg(self.driver:get_look_vertical())-90)))
 				self.top:set_bone_position(
 					"cannon_barrel",
 					{x=0,y=1.2,z=0},
-					{x=math.max(-100,math.min(-60,(-math.deg(self.driver:get_look_vertical())-90))),y=0,z=0}
+					{x=self.cannon_direction_vertical,y=0,z=0}
 				)
 
 				--local top_yaw = (self.driver:get_look_horizontal()--[[-math.pi*0.5]])/(2*math.pi)*360
