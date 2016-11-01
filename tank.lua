@@ -308,7 +308,7 @@ minetest.register_entity(
 						--  ^ Playername is optional, if specified spawns particle only on the player's client
 					})
 
-				self.engine_sound = minetest.sound_play("default_cool_lava", --better sound needed
+				self.engine_sound = minetest.sound_play("mvehicles_engine", --more sounds needed
 					{
 						object = self.object,
 						gain = 0.5, -- default
