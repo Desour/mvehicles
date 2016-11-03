@@ -3,11 +3,11 @@ minetest.register_entity(
 	{
 		hp_max = 1,
 		physical = true,
-		collide_with_objects = false,
+		collide_with_objects = true,
 		weight = 5,
-		collisionbox = {-0.25,-0.25,-0.25, 0.25,0.25,0.25},
+		collisionbox = {-0.1,-0.1,-0.1, 0.1,0.1,0.1},
 		visual ="sprite",	--"cube"/"sprite"/"upright_sprite"/"mesh"/"wielditem",
-		visual_size = {x=1, y=1},
+		visual_size = {x=0.5, y=0.5},
 		textures = {"heart.png"},
 		colors = {},
 		spritediv = {x=1, y=1},
@@ -25,6 +25,23 @@ minetest.register_entity(
 
 		get_staticdata = function(self)
 			return "activated"
+		end,
+
+		on_step = function(self, dtime)
+			--[[if self.oldpos and self.oldvel and self.oldacc then
+				minetest.chat_send_all("oldacc = " .. minetest.serialize(self.oldacc))
+				minetest.chat_send_all("oldvel = " .. minetest.serialize(self.oldvel))
+				minetest.chat_send_all(minetest.serialize(vector.add(self.oldvel, {x=dtime * self.oldacc.x, y=dtime * self.oldacc.y, z=dtime * self.oldacc.z})))
+				--if not self.object:getvelocity() <= vector.add(self.oldvel, {x=math.ceil(dtime * self.oldacc.x), y=math.ceil(dtime * self.oldacc.y), z=math.ceil(dtime * self.oldacc.z)}) then
+				if math.floor(self.object:getvelocity().x * 10) / 10 ~= math.floor(dtime * self.oldacc.x * 10) / 10 or math.floor(self.object:getvelocity().y * 10) / 10 ~= math.floor(dtime * self.oldacc.y * 10) / 10 or math.floor(self.object:getvelocity().y * 10) / 10 ~= math.floor(dtime * self.oldacc.y * 10) / 10 then
+					minetest.chat_send_all("explosion")
+				end
+			else
+				minetest.chat_send_all("no oldpos and oldvel and oldacc")
+			end
+			self.oldpos = self.object:getpos()
+			self.oldvel = self.object:getvelocity()
+			self.oldacc = self.object:getacceleration()]]
 		end
 	}
 )
@@ -387,16 +404,16 @@ minetest.register_entity(
 					self.object:setyaw((yaw+2*math.pi)%(2*math.pi))
 				else
 					if ctrl.up --[[and not turned]] then
-						self.object:setvelocity({x=math.cos(yaw+math.pi/2)*2, y=vel.y, z=math.sin(yaw+math.pi/2)*2})
-						self.object:set_animation({x=0, y=20}, 30, 0)
-						moved = true
-					elseif ctrl.down --[[and not turned]] then
-						self.object:setvelocity({x=math.cos(yaw+math.pi/2)*-1, y=vel.y, z=math.sin(yaw+math.pi/2)*-1})
-						self.object:set_animation({x=20, y=40}, 15, 0)
-						moved = true
-					else
-						--self:stop(vel)
-						moved = false
+							self.object:setvelocity({x=math.cos(yaw+math.pi/2)*2, y=vel.y, z=math.sin(yaw+math.pi/2)*2})
+							self.object:set_animation({x=0, y=20}, 30, 0)
+							moved = true
+						elseif ctrl.down --[[and not turned]] then
+							self.object:setvelocity({x=math.cos(yaw+math.pi/2)*-1, y=vel.y, z=math.sin(yaw+math.pi/2)*-1})
+							self.object:set_animation({x=20, y=40}, 15, 0)
+							moved = true
+						else
+							--self:stop(vel)
+							moved = false
 					end
 					if ctrl.jump and vel.y == 0 --[[and not turned]] then
 						--self.object:setvelocity({x=vel.x, y=4.7, z=vel.z})
@@ -412,7 +429,7 @@ minetest.register_entity(
 
 							self.shootable = false
 							minetest.after(
-								6,
+								3,
 								function(self)
 									self.shootable = true
 								end,
