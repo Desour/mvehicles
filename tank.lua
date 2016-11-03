@@ -20,6 +20,7 @@ minetest.register_entity(
 			if staticdata ~= "" then
 				self.object:remove()
 			end
+			self.object:setacceleration({x=0,y=-5,z=0})
 		end,
 
 		get_staticdata = function(self)
@@ -134,6 +135,8 @@ minetest.register_entity(
 
 			self.object:setacceleration({x=0, y=-10, z=0})
 
+			self.shootable = true
+
 			--a try to fix the disappearing of the player after the death of the tank
 			--[[if staticdata then
 				if self.driver then
@@ -236,7 +239,7 @@ minetest.register_entity(
 					--  ^ Size of element in pixels
 				})
 
-				self.shooting_range = 1
+				self.shooting_range = 10
 
 
 				--[[local shooting_range_2 = ((30 - shooting_range_1)^2)^0.5
@@ -397,16 +400,25 @@ minetest.register_entity(
 					end
 					if ctrl.jump and vel.y == 0 --[[and not turned]] then
 						--self.object:setvelocity({x=vel.x, y=4.7, z=vel.z})
-						local shoot = minetest.add_entity(vector.add(self.object:getpos(), {x=0,y=1.2,z=0}), "mvehicles:tank_shoot")
-						shoot:setvelocity(
-							{
-								x=(math.cos(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range),
-								y=(math.cos(math.rad(-self.cannon_direction_vertical)))*self.shooting_range,
-								z=(math.sin(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range)
-							}
-						)
-						--minetest.chat_send_all("{x="..math.rad(math.sin(-self.cannon_direction_vertical))*self.shooting_range..", y="..math.rad(math.cos(-self.cannon_direction_vertical))*self.shooting_range.."}")
-						--minetest.chat_send_all(self.cannon_direction_vertical)
+						if self.shootable then
+							local shoot = minetest.add_entity(vector.add(self.object:getpos(), {x=0,y=1.2,z=0}), "mvehicles:tank_shoot")
+							shoot:setvelocity(
+								{
+									x=(math.cos(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range),
+									y=(math.cos(math.rad(-self.cannon_direction_vertical)))*self.shooting_range,
+									z=(math.sin(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range)
+								}
+							)
+
+							self.shootable = false
+							minetest.after(
+								6,
+								function(self)
+									self.shootable = true
+								end,
+								self
+							)
+						end
 					end
 				end
 			end
