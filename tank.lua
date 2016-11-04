@@ -38,10 +38,24 @@ minetest.register_entity(
 				end
 			else
 				minetest.chat_send_all("no oldpos and oldvel and oldacc")
+			end]]
+
+			if self.oldvel then
+				if ((self.oldvel.x ~= 0 and self.object:getvelocity().x == 0)
+				or (self.oldvel.y ~= 0 and self.object:getvelocity().y == 0)
+				or (self.oldvel.z ~= 0 and self.object:getvelocity().z == 0))
+				and (not self.explosion) then
+					self.explosion = true
+				end
+				if self.explosion == true then
+					minetest.chat_send_all("explosion")
+					self.object:remove()
+				end
 			end
+
 			self.oldpos = self.object:getpos()
 			self.oldvel = self.object:getvelocity()
-			self.oldacc = self.object:getacceleration()]]
+			self.oldacc = self.object:getacceleration()
 		end
 	}
 )
@@ -415,16 +429,16 @@ minetest.register_entity(
 							--self:stop(vel)
 							moved = false
 					end
-					if ctrl.jump and vel.y == 0 --[[and not turned]] then
+					if ctrl.jump --[[and vel.y == 0]] --[[and not turned]] then
 						--self.object:setvelocity({x=vel.x, y=4.7, z=vel.z})
 						if self.shootable then
 							local shoot = minetest.add_entity(vector.add(self.object:getpos(), {x=0,y=1.2,z=0}), "mvehicles:tank_shoot")
 							shoot:setvelocity(
-								{
+								vector.add(vel,{
 									x=(math.cos(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range),
 									y=(math.cos(math.rad(-self.cannon_direction_vertical)))*self.shooting_range,
 									z=(math.sin(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range)
-								}
+								})
 							)
 
 							self.shootable = false
