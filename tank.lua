@@ -48,7 +48,8 @@ minetest.register_entity(
 					self.explosion = true
 				end
 				if self.explosion == true then
-					minetest.chat_send_all("explosion")
+					--minetest.chat_send_all("explosion")
+					tnt.boom(self.object:getpos(),{damage_radius=3,radius=3,ignore_protection=true})
 					self.object:remove()
 				end
 			end
