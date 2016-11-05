@@ -199,8 +199,7 @@ minetest.register_entity(
 			if not clicker or not clicker:is_player() then
 				return
 			end
-			self.driver = clicker
-			if clicker:get_attach() then
+			if clicker == self.driver then
 				self.driver:set_detach()
 				self.driver:set_properties({visual_size = {x=1, y=1}})
 				self.driver:set_eye_offset({x=0,y=0,z=0}, {x=0,y=0,z=0})
@@ -212,7 +211,8 @@ minetest.register_entity(
 				self.driver:hud_remove(self.shooting_range_hud_l)
 				self.driver:hud_remove(self.shooting_range_hud_r)
 				self.driver = nil
-			else
+			elseif not self.driver and not clicker:get_attach() then
+				self.driver = clicker
 				self.driver:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 				self.driver:set_properties({visual_size = {x=0.1, y=0.1}})
 				self.driver:set_eye_offset({x=0,y=2,z=0}, {x=0,y=10,z=-3})
