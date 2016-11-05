@@ -139,6 +139,7 @@ minetest.register_entity(
 	{
 		hp_max = 10,
 		physical = true,
+		collide_with_objects = true,
 		weight = 5,
 		collisionbox = {-1.9,-0.99,-1.9, 1.9,1,1.9},
 		visual = "mesh",
