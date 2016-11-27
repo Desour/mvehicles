@@ -24,7 +24,7 @@ minetest.register_entity(
 		backface_culling = false, -- false to disable backface_culling for model
 
 		on_activate = function(self, staticdata)
-			self.object:setacceleration({x=0, y=-10, z=0})
+			self.object:setacceleration({x=0, y=-tonumber(minetest.setting_get("movement_gravity")), z=0})
 			self.anim_m = 0
 			self.anim_t = 0
 			self.antiforce = 1

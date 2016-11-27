@@ -166,7 +166,7 @@ minetest.register_entity(
 				self.exhauster:set_attach(self.object, "", {x=-0.7,y=0.8,z=-1.3}, {x=0,y=0,z=0})
 			end
 
-			self.object:setacceleration({x=0, y=-10, z=0})
+			self.object:setacceleration({x=0, y=-tonumber(minetest.setting_get("movement_gravity")), z=0})
 
 			self.shootable = true
 
