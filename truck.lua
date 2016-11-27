@@ -25,6 +25,9 @@ minetest.register_entity(
 
 		on_activate = function(self, staticdata)
 			self.object:setacceleration({x=0, y=-10, z=0})
+			self.anim_m = 0
+			self.anim_t = 0
+			self.antiforce = 1
 		end,
 
 		on_rightclick =function(self, clicker)
@@ -55,10 +58,28 @@ minetest.register_entity(
 		end,
 
 		on_step = function(self, dtime)
+			local pos = self.object:getpos()
 			local vel = self.object:getvelocity()
-			if vel.y == 0 and (vel.x ~= 0 or vel.z ~= 0) then
+			local acc = self.object:getacceleration()
+			--[[if vel.y == 0 and (vel.x ~= 0 or vel.z ~= 0) then
 				self.object:setvelocity({x=0, y=0, z=0})
+			end]]
+			if vel.y == 0 then
+				local animspeed = (vel.x^2 + vel.z^2)^0.5
+				if animspeed > 0.01 then
+					animspeed = math.ceil(animspeed)
+				end
+				self.object:set_animation({x=self.anim_m+self.anim_t+1, y=self.anim_m+self.anim_t+20}, animspeed, 0)
+				self.antiforce = 0.95
+			else
+				self.antiforce = 0.995
 			end
+			self.object:setvelocity({x=vel.x*self.antiforce,y=vel.y*self.antiforce,z=vel.z*self.antiforce})
+			--[[self.object:setvelocity({
+				x=vel.x-((vel.x^2)*(vel.x/((vel.x^2)^0.5))*self.antiforce/2),
+				y=vel.y-((vel.y^2)*(vel.x/((vel.x^2)^0.5))*self.antiforce/2),
+				z=vel.z-((vel.z^2)*(vel.x/((vel.x^2)^0.5))*self.antiforce/2)
+			})]]
 			if not self.driver then
 				return
 			end
@@ -66,17 +87,36 @@ minetest.register_entity(
 			local ctrl = self.driver:get_player_control()
 			local turned
 			local moved
-			if ctrl.up --[[and not turned]] then
-				self.object:setvelocity({x=math.cos(yaw+math.pi/2)*2, y=vel.y, z=math.sin(yaw+math.pi/2)*2})
-				self.object:set_animation({x=1, y=20}, 30, 0)
+			if ctrl.sneak then
+				self.antiforce = 0.8
+				--self.object:setvelocity({x=0,y=vel.y,z=0})
+				moved = false
+			elseif ctrl.up then
+				self.object:setvelocity(vector.add(vel,{x=math.cos(yaw+math.pi/2)*2*dtime, y=0, z=math.sin(yaw+math.pi/2)*2*dtime}))
+				self.anim_m = 0
 				moved = true
-			elseif ctrl.down --[[and not turned]] then
-				self.object:setvelocity({x=math.cos(yaw+math.pi/2)*-1, y=vel.y, z=math.sin(yaw+math.pi/2)*-1})
-				self.object:set_animation({x=21, y=40}, 15, 0)
+			elseif ctrl.down then
+				self.object:setvelocity(vector.add(vel,{x=math.cos(yaw+math.pi/2)*-1*dtime, y=0, z=math.sin(yaw+math.pi/2)*-1*dtime}))
+				self.anim_m = 20
 				moved = true
 			else
-				--self:stop(vel)
 				moved = false
+			end
+			if ctrl.left then
+				local yaw_n = dtime*((vel.x^2 + vel.z^2)^0.5)/10
+				self.object:setyaw(yaw+yaw_n)
+				self.object:setpos(pos)
+				self.anim_t = 80
+				turned = true
+			elseif ctrl.right then
+				local yaw_n = dtime*((vel.x^2 + vel.z^2)^0.5)/10
+				self.object:setyaw(yaw-yaw_n)
+				self.object:setpos(pos)
+				self.anim_t = 40
+				turned = true
+			else
+				self.anim_t = 0
+				turned = false
 			end
 		end
 	}
