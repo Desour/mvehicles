@@ -15,15 +15,20 @@ minetest.register_entity(
 		collide_with_objects = true,
 		weight = 5,
 		collisionbox = {-0.1,-0.1,-0.1, 0.1,0.1,0.1},
-		visual ="sprite",	--"cube"/"sprite"/"upright_sprite"/"mesh"/"wielditem",
-		visual_size = {x=0.5, y=0.5},
-		textures = {"heart.png"},
+		visual ="mesh",	--"cube"/"sprite"/"upright_sprite"/"mesh"/"wielditem",
+		visual_size = {x=5, y=5},
+		mesh = "mvehicles_tank_shoot.b3d",
+		textures = {"mvehicles_tank_shoot.png"},
 		colors = {},
 		spritediv = {x=1, y=1},
 		initial_sprite_basepos = {x=0, y=0},
 		is_visible = true,
 		makes_footstep_sound = false,
 		automatic_rotate = false,
+        automatic_face_movement_dir = 90.0,
+    --  ^ automatically set yaw to movement direction; offset in degrees; false to disable
+        automatic_face_movement_max_rotation_per_sec = -1,
+    --  ^ limit automatic rotation to this value in degrees per second. values < 0 no limit
 
 		on_activate = function(self, staticdata)
 			if staticdata ~= "" then
@@ -62,6 +67,9 @@ minetest.register_entity(
 					self.object:remove()
 				end
 			end
+
+			local rot = -math.deg(math.atan(self.object:getvelocity().y/(self.object:getvelocity().x^2+self.object:getvelocity().z^2)^0.5))
+			self.object:set_animation({x=rot+90, y=rot+90}, 0, 0)
 
 			self.oldpos = self.object:getpos()
 			self.oldvel = self.object:getvelocity()
@@ -451,6 +459,11 @@ minetest.register_entity(
 									z=(math.sin(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range)
 								})
 							)
+							minetest.sound_play("mvehicles_tank_shoot", {
+								pos = self.object:getpos(),
+								gain = 0.5,
+								max_hear_distance = 32, -- default, uses an euclidean metric
+							})
 
 							self.shootable = false
 							minetest.after(
