@@ -49,9 +49,11 @@ minetest.register_entity(
 				self.driver:set_eye_offset({x=0,y=0,z=0}, {x=0,y=0,z=0})
 				self.object:set_animation({x=0, y=0}, 0, 0)
 				minetest.sound_stop(self.engine_sound)
+				default.player_attached[self.driver:get_player_name()] = false
 				self.driver = nil
 			elseif not self.driver and not clicker:get_attach() then
 				self.driver = clicker
+				default.player_attached[self.driver:get_player_name()] = true
 				self.driver:set_attach(self.object, "", {x=-0.5,y=0.8,z=0.7}, {x=0,y=0,z=0})
 				self.driver:set_properties({visual_size = {x=0.1, y=0.1}})
 				self.driver:set_eye_offset({x=-5,y=-1,z=11}, {x=0,y=10,z=-3})

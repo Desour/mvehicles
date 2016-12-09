@@ -227,9 +227,11 @@ minetest.register_entity(
 				self.driver:hud_remove(self.fuel_hud_r)
 				self.driver:hud_remove(self.shooting_range_hud_l)
 				self.driver:hud_remove(self.shooting_range_hud_r)
+				default.player_attached[self.driver:get_player_name()] = false
 				self.driver = nil
 			elseif not self.driver and not clicker:get_attach() then
 				self.driver = clicker
+				default.player_attached[self.driver:get_player_name()] = true
 				self.driver:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 				self.driver:set_properties({visual_size = {x=0.1, y=0.1}})
 				self.driver:set_eye_offset({x=0,y=2,z=0}, {x=0,y=10,z=-3})
