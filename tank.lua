@@ -173,6 +173,13 @@ minetest.register_entity(
 
 
 		on_activate = function(self, staticdata)
+			if self.fuel == nil then
+				if staticdata ~= "" then
+					self.fuel = tonumber(staticdata)
+				else
+					self.fuel = 15
+				end
+			end
 			--self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
 			self.top = minetest.add_entity(self.object:getpos(), "mvehicles:tank_top")
 			self.exhauster = minetest.add_entity(self.object:getpos(), "mvehicles:tank_exhauster")
@@ -200,7 +207,7 @@ minetest.register_entity(
 
 
 		get_staticdata = function(self)
-			return "activated"
+			return self.fuel
 		end,
 
 		--on_punch = function(self, puncher)
@@ -237,7 +244,6 @@ minetest.register_entity(
 				self.driver:set_eye_offset({x=0,y=2,z=0}, {x=0,y=10,z=-3})
 				self.driver:set_animation({x=81, y=161}, 15, 0)
 
-				self.fuel = 15
 				if self.fuel then
 					self.fuel_hud_1 = self.fuel
 					self.fuel_hud_2 = 0
@@ -393,6 +399,13 @@ minetest.register_entity(
 			if not self.driver then
 				return
 			end
+			if self.fuel <= 0 then
+				minetest.delete_particlespawner(self.exhaust)
+				minetest.sound_stop(self.engine_sound)
+				return
+			end
+			minetest.chat_send_all(self.fuel)
+			self.fuel = self.fuel - 0.001*dtime
 			local yaw = self.object:getyaw()
 			local ctrl = self.driver:get_player_control()
 			local turned
@@ -412,10 +425,12 @@ minetest.register_entity(
 				if ctrl.left then
 					yaw = yaw + dtime
 					self.object:set_animation({x=80, y=100}, 30, 0)
+					self.fuel = self.fuel - 0.01*dtime
 					turned = true
 				elseif ctrl.right then
 					yaw = yaw - dtime
 					self.object:set_animation({x=60, y=80}, 30, 0)
+					self.fuel = self.fuel - 0.01*dtime
 					turned = true
 				else
 					self.object:set_animation({x=0, y=0}, 0, 0)
@@ -441,10 +456,12 @@ minetest.register_entity(
 					if ctrl.up --[[and not turned]] then
 							self.object:setvelocity({x=math.cos(yaw+math.pi/2)*2, y=vel.y, z=math.sin(yaw+math.pi/2)*2})
 							self.object:set_animation({x=0, y=20}, 30, 0)
+							self.fuel = self.fuel - 0.1*dtime
 							moved = true
 						elseif ctrl.down --[[and not turned]] then
 							self.object:setvelocity({x=math.cos(yaw+math.pi/2)*-1, y=vel.y, z=math.sin(yaw+math.pi/2)*-1})
 							self.object:set_animation({x=20, y=40}, 15, 0)
+							self.fuel = self.fuel - 0.05*dtime
 							moved = true
 						else
 							--self:stop(vel)

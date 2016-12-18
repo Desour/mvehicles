@@ -16,10 +16,25 @@ minetest.register_node("mvehicles:constructor", {
 	on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
 		local p = clicker:get_player_name()
 		minetest.show_formspec(p, "mvehicles:constructor_formspec",
-			"size[4,3]" ..
-			"label[0,0;Hello, " .. p .. "!\nThis a not usable node.]" ..
-			"field[1,1.5;3,1;name;Name;]" ..
-			"button_exit[1,2;2,1;exit;Exit]")
+			"size[8,12]"..
+			"list[current_player;main;0,8;8,4;]" ..
+			"item_image[1,1;2,1;default:mese_crystal]"..
+			--"bgcolor[#0000FF;false]"..
+			--"background[0,0;0,0;gui_formbg.png;true]"..
+			--"pwdfield[4,1;4,1;pass;password]"..
+			"field[4,2;2,1;baum;baum;an]"..
+			"label[0,0;Constructor]"..
+			"vertlabel[0,4;vertical]"..
+			"button[0,0;4,2;touch;you can touch this]"..
+			"image_button[0,1;1,1;default_dirt.png;dirt;d;flase;true;default_dirt.png^default_grass_side.png]"..
+			"button_exit[4,5;2,1;exit;close]"..
+			"textlist[2,2.5;2,1;vehicle;tank,truck;tank;true]"..
+			"tabheader[-1,4;tabs;tank,truck;tank;true;true]"..
+			"dropdown[6,4;2;drop;tank,truck;1]"..
+			"checkbox[6,5;check;bla;true]"..
+			"scrollbar[6,6;2,0.2;horizontal;scroll;200]"..
+			"table[3,5;3,1;tabl;baum,blume;1]"
+			)
 	end
 })
 
