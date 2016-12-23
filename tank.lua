@@ -245,6 +245,11 @@ minetest.register_entity(
 				self.driver:set_animation({x=81, y=161}, 15, 0)
 
 				if self.fuel then
+					if self.fuel > 0 then
+						minetest.chat_send_all("fuel: "..self.fuel)
+					else
+						minetest.chat_send_all("no fuel, spawn a new tank")
+					end
 					self.fuel_hud_1 = self.fuel
 					self.fuel_hud_2 = 0
 					while self.fuel_hud_1 > 30 do
@@ -402,9 +407,11 @@ minetest.register_entity(
 			if self.fuel <= 0 then
 				minetest.delete_particlespawner(self.exhaust)
 				minetest.sound_stop(self.engine_sound)
+				--minetest.chat_send_all("no fuel, spawn a new tank")
 				return
+			--else
+			--	minetest.chat_send_all(self.fuel)
 			end
-			minetest.chat_send_all(self.fuel)
 			self.fuel = self.fuel - 0.001*dtime
 			local yaw = self.object:getyaw()
 			local ctrl = self.driver:get_player_control()
