@@ -100,7 +100,7 @@ minetest.register_entity(
 			local moved
 			if ctrl.sneak then
 				self.antiforce = 0.8
-				--self.object:setvelocity({x=0,y=vel.y,z=0})
+				--~ self.object:setvelocity({x=0,y=vel.y,z=0})
 				moved = false
 			elseif ctrl.up then
 				self.object:setvelocity(vector.add(vel,{x=math.cos(yaw+math.pi/2)*2*dtime, y=0, z=math.sin(yaw+math.pi/2)*2*dtime}))

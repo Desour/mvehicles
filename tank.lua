@@ -46,7 +46,7 @@ minetest.register_entity(
 				minetest.chat_send_all("oldacc = " .. minetest.serialize(self.oldacc))
 				minetest.chat_send_all("oldvel = " .. minetest.serialize(self.oldvel))
 				minetest.chat_send_all(minetest.serialize(vector.add(self.oldvel, {x=dtime * self.oldacc.x, y=dtime * self.oldacc.y, z=dtime * self.oldacc.z})))
-				--if not self.object:getvelocity() <= vector.add(self.oldvel, {x=math.ceil(dtime * self.oldacc.x), y=math.ceil(dtime * self.oldacc.y), z=math.ceil(dtime * self.oldacc.z)}) then
+				--~ if not self.object:getvelocity() <= vector.add(self.oldvel, {x=math.ceil(dtime * self.oldacc.x), y=math.ceil(dtime * self.oldacc.y), z=math.ceil(dtime * self.oldacc.z)}) then
 				if math.floor(self.object:getvelocity().x * 10) / 10 ~= math.floor(dtime * self.oldacc.x * 10) / 10 or math.floor(self.object:getvelocity().y * 10) / 10 ~= math.floor(dtime * self.oldacc.y * 10) / 10 or math.floor(self.object:getvelocity().y * 10) / 10 ~= math.floor(dtime * self.oldacc.y * 10) / 10 then
 					minetest.chat_send_all("explosion")
 				end
@@ -62,7 +62,6 @@ minetest.register_entity(
 					self.explosion = true
 				end
 				if self.explosion == true then
-					--minetest.chat_send_all("explosion")
 					tnt.boom(self.object:getpos(),{damage_radius=3,radius=3,ignore_protection=true})
 					self.object:remove()
 				end
@@ -131,9 +130,12 @@ minetest.register_entity(
 		makes_footstep_sound = false,
 		automatic_rotate = false,
 
-		on_activate = function(self, staticdata)
+		on_activate = function(self, staticdata, dtime_s)
+			--~ minetest.chat_send_all(dtime_s)
 			if staticdata ~= "" then
+				--~ minetest.chat_send_all("bla1")
 				if not self.object:get_attach() then
+					--~ minetest.chat_send_all("bla2")
 					self.object:remove()
 				end
 			end
@@ -176,13 +178,14 @@ minetest.register_entity(
 
 
 		on_activate = function(self, staticdata)
+			--~ minetest.chat_send_all(staticdata)
 			if staticdata ~= "" then
 				local s = minetest.deserialize(staticdata)
 				self.fuel = s.fuel
 			else
 				self.fuel = 15
 			end
-			--self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
+			--~ self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
 			self.top = minetest.add_entity(self.object:getpos(), "mvehicles:tank_top")
 			self.exhauster = minetest.add_entity(self.object:getpos(), "mvehicles:tank_exhauster")
 			if self.top then
@@ -212,13 +215,13 @@ minetest.register_entity(
 			return minetest.serialize({fuel=self.fuel--[[,top=self.top,exhauster=self.exhauster]]})
 		end,
 
-		--on_punch = function(self, puncher)
+		--~ on_punch = function(self, puncher)
 			--some old relict from the past
-			--[[self.object:setvelocity({x=0, y=0, z=1})
+			--~ self.object:setvelocity({x=0, y=0, z=1})
 			--self.object:setacceleration({x=0, y=-10, z=1})
-			self.object:set_animation({x=0, y=20}, 30, 0)
-			--os.execute("sleep 1")]]
-		--end,
+			--~ self.object:set_animation({x=0, y=20}, 30, 0)
+			--~ os.execute("sleep 1")
+		--~ end,
 
 
 		on_rightclick = function(self, clicker)
@@ -409,10 +412,10 @@ minetest.register_entity(
 			if self.fuel <= 0 then
 				minetest.delete_particlespawner(self.exhaust)
 				minetest.sound_stop(self.engine_sound)
-				--minetest.chat_send_all("no fuel, spawn a new tank")
+				--~ minetest.chat_send_all("no fuel, spawn a new tank")
 				return
-			--else
-			--	minetest.chat_send_all(self.fuel)
+			--~ else
+				--~ minetest.chat_send_all(self.fuel)
 			end
 			self.fuel = self.fuel - 0.001*dtime
 			local yaw = self.object:getyaw()
@@ -443,7 +446,7 @@ minetest.register_entity(
 					turned = true
 				else
 					self.object:set_animation({x=0, y=0}, 0, 0)
-					--self.top:set_animation({x=top_yaw_a,y=top_yaw_a}, 0, 0)
+					--~ self.top:set_animation({x=top_yaw_a,y=top_yaw_a}, 0, 0)
 					turned = false
 				end
 			--[[else
@@ -459,7 +462,7 @@ minetest.register_entity(
 				end]]
 			--end
 				if turned then
-					--self.object:setvelocity({x=0, y=vel.y, z=0})
+					--~ self.object:setvelocity({x=0, y=vel.y, z=0})
 					self.object:setyaw((yaw+2*math.pi)%(2*math.pi))
 				else
 					if ctrl.up --[[and not turned]] then
@@ -477,7 +480,7 @@ minetest.register_entity(
 							moved = false
 					end
 					if ctrl.jump --[[and vel.y == 0]] --[[and not turned]] then
-						--self.object:setvelocity({x=vel.x, y=4.7, z=vel.z})
+						--~ self.object:setvelocity({x=vel.x, y=4.7, z=vel.z})
 						if self.shootable then
 							local shoot = minetest.add_entity(vector.add(self.object:getpos(), {x=0,y=1.2,z=0}), "mvehicles:tank_shoot")
 							shoot:setvelocity(
