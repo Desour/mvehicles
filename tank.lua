@@ -96,7 +96,7 @@ minetest.register_entity(
 		makes_footstep_sound = false,
 		automatic_rotate = false,
 
-		on_step = function(self, staticdata)
+		on_activate = function(self, staticdata)
 			if staticdata ~= "" then
 				if not self.object:get_attach() then
 					self.object:remove()
@@ -131,11 +131,7 @@ minetest.register_entity(
 		makes_footstep_sound = false,
 		automatic_rotate = false,
 
-		--[[on_rightclick = function(self, clicker)
-			self.object:remove()
-		end,]]
-
-		on_step = function(self, staticdata)
+		on_activate = function(self, staticdata)
 			if staticdata ~= "" then
 				if not self.object:get_attach() then
 					self.object:remove()
@@ -162,7 +158,14 @@ minetest.register_entity(
 		visual = "mesh",
 		visual_size = {x=10, y=10},
 		mesh = "mvehicles_tank_bottom.b3d",
-		textures = {"mvehicles_tank.png"},
+		textures = {
+			"mvehicles_tank.png"--[[,
+			"mvehicles_decal_1.png",
+			"mvehicles_decal_2.png",
+			"mvehicles_decal_3.png",
+			"mvehicles_decal_4.png",
+			"mvehicles_decal_5.png"]]
+			},
 		colors = {},
 		spritediv = {x=1, y=1},
 		initial_sprite_basepos = {x=0, y=0},
@@ -173,12 +176,11 @@ minetest.register_entity(
 
 
 		on_activate = function(self, staticdata)
-			if self.fuel == nil then
-				if staticdata ~= "" then
-					self.fuel = tonumber(staticdata)
-				else
-					self.fuel = 15
-				end
+			if staticdata ~= "" then
+				local s = minetest.deserialize(staticdata)
+				self.fuel = s.fuel
+			else
+				self.fuel = 15
 			end
 			--self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
 			self.top = minetest.add_entity(self.object:getpos(), "mvehicles:tank_top")
@@ -207,7 +209,7 @@ minetest.register_entity(
 
 
 		get_staticdata = function(self)
-			return self.fuel
+			return minetest.serialize({fuel=self.fuel--[[,top=self.top,exhauster=self.exhauster]]})
 		end,
 
 		--on_punch = function(self, puncher)
