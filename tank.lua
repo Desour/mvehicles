@@ -62,7 +62,7 @@ minetest.register_entity(
 					self.explosion = true
 				end
 				if self.explosion == true then
-					tnt.boom(self.object:getpos(),{damage_radius=3,radius=3,ignore_protection=true})
+					tnt.boom(self.object:getpos(),{damage_radius=3,radius=2,ignore_protection=true})
 					self.object:remove()
 				end
 			end
@@ -391,7 +391,7 @@ minetest.register_entity(
 		end,
 
 
-		stop = function(self, vel)
+		_stop = function(self, vel)
 			self.object:set_animation({x=0, y=0}, 0, 0)
 			self.object:setvelocity({x=0, y=vel.y, z=0})
 		end,
@@ -476,7 +476,7 @@ minetest.register_entity(
 							self.fuel = self.fuel - 0.05*dtime
 							moved = true
 						else
-							--self:stop(vel)
+							--self:_stop(vel)
 							moved = false
 					end
 					if ctrl.jump --[[and vel.y == 0]] --[[and not turned]] then
