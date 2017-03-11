@@ -106,16 +106,34 @@ minetest.register_entity("mvehicles:tank_exhauster", {
 	makes_footstep_sound = false,
 	automatic_rotate = false,
 
-	on_activate = function(self, staticdata)
-		if staticdata ~= "" then
-			if not self.object:get_attach() then
-				self.object:remove()
-			end
+	on_activate = function(self, staticdata, dtime_s)
+		if string.sub(staticdata, 1, 1) ~= "m" then
+			local pos = self.object:getpos()
+			minetest.chat_send_all("’mvehicles:tank_exhauster’ without ID"..
+				" was found at ("..pos.x..", "..pos.y..", "..pos.z.."), removing...")
+			self.object:remove()
+			return
 		end
+		self.id = staticdata
+		--~ if os.time() ~= tonumber(string.sub(self.id, 22, string.find(self.id, "p")-2)) then
+			--~ if not self.object:get_attach() then
+				--~ self.object:remove()
+			--~ end
+		--~ end
 	end,
 
 	get_staticdata = function(self)
-		return "activated"
+		return self.id
+	end,
+
+	on_step = function(self)
+		if not self.ok then
+			if self.object:get_attach() then
+				self.ok = true
+			else
+				self.object:remove()
+			end
+		end
 	end
 })
 
@@ -139,18 +157,33 @@ minetest.register_entity("mvehicles:tank_top", {
 	automatic_rotate = false,
 
 	on_activate = function(self, staticdata, dtime_s)
-		--~ minetest.chat_send_all(dtime_s)
-		if staticdata ~= "" then
-			--~ minetest.chat_send_all("bla1")
-			if not self.object:get_attach() then
-				--~ minetest.chat_send_all("bla2")
-				self.object:remove()
-			end
+		if string.sub(staticdata, 1, 1) ~= "m" then
+			local pos = self.object:getpos()
+			minetest.chat_send_all("’mvehicles:tank_top’ without ID"..
+				" was found at ("..pos.x..", "..pos.y..", "..pos.z.."), removing...")
+			self.object:remove()
+			return
 		end
+		self.id = staticdata
+		--~ if os.time() ~= tonumber(string.sub(self.id, 22, string.find(self.id, "p")-2)) then
+			--~ if not self.object:get_attach() then
+				--~ self.object:remove()
+			--~ end
+		--~ end
 	end,
 
 	get_staticdata = function(self)
-		return "activated"
+		return self.id
+	end,
+
+	on_step = function(self)
+		if not self.ok then
+			if self.object:get_attach() then
+				self.ok = true
+			else
+				self.object:remove()
+			end
+		end
 	end
 })
 
@@ -183,31 +216,38 @@ minetest.register_entity("mvehicles:tank", {
 
 
 	on_activate = function(self, staticdata)
-		--~ minetest.chat_send_all(staticdata)
-		if staticdata ~= "" then
-			local s = minetest.deserialize(staticdata)
-			self.fuel = s.fuel
-		else
+		local pos = self.object:getpos()
+		if staticdata == "" then -- initial activate
+			self.id = "mvehicles:tank\ntime:\n"..os.time().."\npos:\n"..dump(pos)
 			self.fuel = 15
+			self.top = minetest.add_entity(pos, "mvehicles:tank_top", self.id)
+			self.exhauster = minetest.add_entity(pos, "mvehicles:tank_exhauster", self.id)
+			--~ self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
+		else
+			local s = minetest.deserialize(staticdata)
+			self.id = s.id
+			self.fuel = s.fuel
 		end
-		--~ self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
-		self.top = minetest.add_entity(self.object:getpos(), "mvehicles:tank_top")
-		self.exhauster = minetest.add_entity(self.object:getpos(), "mvehicles:tank_exhauster")
 		if self.top then
 			self.top:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 		end
 		if self.exhauster then
 			self.exhauster:set_attach(self.object, "", {x=-0.7,y=0.8,z=-1.3}, {x=0,y=0,z=0})
 		end
-
-		self.object:setacceleration({x=0, y=-tonumber(minetest.setting_get("movement_gravity")), z=0})
-
+		self.object:setacceleration({
+			x = 0,
+			y = -tonumber(minetest.setting_get("movement_gravity")),
+			z = 0})
 		self.shootable = true
 	end,
 
 
 	get_staticdata = function(self)
-		return minetest.serialize({fuel=self.fuel--[[,top=self.top,exhauster=self.exhauster]]})
+		return minetest.serialize({
+			fuel = self.fuel,
+			--[[top=self.top,
+			exhauster=self.exhauster,]]
+			id = self.id})
 	end,
 
 	on_rightclick = function(self, clicker)
@@ -219,6 +259,7 @@ minetest.register_entity("mvehicles:tank", {
 			self.driver:set_properties({visual_size = {x=1, y=1}})
 			self.driver:set_eye_offset({x=0,y=0,z=0}, {x=0,y=0,z=0})
 			self.object:set_animation({x=0, y=0}, 0, 0)
+			default.player_set_animation(self.driver, stand)
 			minetest.delete_particlespawner(self.exhaust)
 			minetest.sound_stop(self.engine_sound)
 			self.driver:hud_remove(self.fuel_hud_l)
@@ -233,7 +274,7 @@ minetest.register_entity("mvehicles:tank", {
 			self.driver:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 			self.driver:set_properties({visual_size = {x=0.1, y=0.1}})
 			self.driver:set_eye_offset({x=0,y=2,z=0}, {x=0,y=10,z=-3})
-			self.driver:set_animation({x=81, y=161}, 15, 0)
+			default.player_set_animation(self.driver, sit)
 
 			if self.fuel then
 				if self.fuel > 0 then
@@ -320,35 +361,32 @@ minetest.register_entity("mvehicles:tank", {
 				size = { x=50, y=50},
 			})
 
-			self.exhaust = minetest.add_particlespawner(
-				{
-					amount = 10,
-					time = 0,
-					minpos = {x=0, y=0.5, z=0},
-					maxpos = {x=0, y=0.5, z=0},
-					minvel = {x=-0.1, y=1, z=-0.1},
-					maxvel = {x=0.1, y=1.5, z=0.1},
-					minacc = {x=0, y=0, z=0},
-					maxacc = {x=0, y=0, z=0},
-					minexptime = 1,
-					maxexptime = 2,
-					minsize = 1,
-					maxsize = 3,
-					collisiondetection = true,
-					collision_removal = false,
-					attached = self.exhauster,
-					vertical = false,
-					texture = "tnt_smoke.png",
-				})
+			self.exhaust = minetest.add_particlespawner({
+				amount = 10,
+				time = 0,
+				minpos = {x=0, y=0.5, z=0},
+				maxpos = {x=0, y=0.5, z=0},
+				minvel = {x=-0.1, y=1, z=-0.1},
+				maxvel = {x=0.1, y=1.5, z=0.1},
+				minacc = {x=0, y=0, z=0},
+				maxacc = {x=0, y=0, z=0},
+				minexptime = 1,
+				maxexptime = 2,
+				minsize = 1,
+				maxsize = 3,
+				collisiondetection = true,
+				collision_removal = false,
+				attached = self.exhauster,
+				vertical = false,
+				texture = "tnt_smoke.png",
+			})
 
-			self.engine_sound = minetest.sound_play("mvehicles_engine",
-				{
-					object = self.object,
-					gain = 0.5,
-					max_hear_distance = 32,
-					loop = true,
-				})
-
+			self.engine_sound = minetest.sound_play("mvehicles_engine", {
+				object = self.object,
+				gain = 0.5,
+				max_hear_distance = 32,
+				loop = true,
+			})
 		end
 	end,
 
@@ -374,109 +412,59 @@ minetest.register_entity("mvehicles:tank", {
 		local ctrl = self.driver:get_player_control()
 		local turned
 		local moved
-		--if ctrl.aux1 then
-			--[[local def.radius = 3
-			local def.ignore_protection = 1
-			local def.ignore_on_blast = 1
-			local pos = self.object:getpos()
-			]]
-			--tnt.boom(self.object:getpos())
-			--shooter:blast(self.object:getpos(), 3, 50, 8, self.driver)
-			--tnt_explode(pos, 3, 1, 1)
-		--end
-		--if not ctrl.sneak then
 		if vel.y == 0 then
 			if ctrl.left then
 				yaw = yaw + dtime
 				self.object:set_animation({x=80, y=100}, 30, 0)
-				self.fuel = self.fuel - 0.01*dtime
 				turned = true
 			elseif ctrl.right then
 				yaw = yaw - dtime
 				self.object:set_animation({x=60, y=80}, 30, 0)
-				self.fuel = self.fuel - 0.01*dtime
 				turned = true
 			else
 				self.object:set_animation({x=0, y=0}, 0, 0)
-				--~ self.top:set_animation({x=top_yaw_a,y=top_yaw_a}, 0, 0)
 				turned = false
 			end
-		--[[else
-			if ctrl.left then
-				self.top_yaw = self.top_yaw+(dtime*50)
-			elseif ctrl.right then
-				self.top_yaw = self.top_yaw-(dtime*50)
-			end
-			--top_yaw = self.driver:get_look_horizontal()
-			--print(top_yaw)
-			if not moved and not turned then
-				self.object:set_animation({x=0, y=0}, 0, 0)
-			end]]
-		--end
 			if turned then
-				--~ self.object:setvelocity({x=0, y=vel.y, z=0})
 				self.object:setyaw((yaw+2*math.pi)%(2*math.pi))
+				self.fuel = self.fuel - 0.01*dtime
 			else
 				if ctrl.up --[[and not turned]] then
-						self.object:setvelocity({x=math.cos(yaw+math.pi/2)*2, y=vel.y, z=math.sin(yaw+math.pi/2)*2})
-						self.object:set_animation({x=0, y=20}, 30, 0)
-						self.fuel = self.fuel - 0.1*dtime
-						moved = true
-					elseif ctrl.down --[[and not turned]] then
-						self.object:setvelocity({x=math.cos(yaw+math.pi/2)*-1, y=vel.y, z=math.sin(yaw+math.pi/2)*-1})
-						self.object:set_animation({x=20, y=40}, 15, 0)
-						self.fuel = self.fuel - 0.05*dtime
-						moved = true
-					else
-						moved = false
+					self.object:setvelocity({x=math.cos(yaw+math.pi/2)*2, y=vel.y, z=math.sin(yaw+math.pi/2)*2})
+					self.object:set_animation({x=0, y=20}, 30, 0)
+					self.fuel = self.fuel - 0.1*dtime
+					moved = true
+				elseif ctrl.down --[[and not turned]] then
+					self.object:setvelocity({x=math.cos(yaw+math.pi/2)*-1, y=vel.y, z=math.sin(yaw+math.pi/2)*-1})
+					self.object:set_animation({x=20, y=40}, 15, 0)
+					self.fuel = self.fuel - 0.05*dtime
+					moved = true
+				else
+					moved = false
 				end
 				if ctrl.jump --[[and vel.y == 0]] --[[and not turned]] then
-					--~ self.object:setvelocity({x=vel.x, y=4.7, z=vel.z})
 					if self.shootable then
 						local shoot = minetest.add_entity(vector.add(self.object:getpos(), {x=0,y=1.2,z=0}), "mvehicles:tank_shoot")
-						shoot:setvelocity(
-							vector.add(vel,{
-								x=(math.cos(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range),
-								y=(math.cos(math.rad(-self.cannon_direction_vertical)))*self.shooting_range,
-								z=(math.sin(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range)
-							})
-						)
+						shoot:setvelocity(vector.add(vel,{
+							x=(math.cos(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range),
+							y=(math.cos(math.rad(-self.cannon_direction_vertical)))*self.shooting_range,
+							z=(math.sin(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range)
+						}))
 						minetest.sound_play("mvehicles_tank_shoot", {
 							pos = self.object:getpos(),
 							gain = 0.5,
-							max_hear_distance = 32, -- default, uses an euclidean metric
+							max_hear_distance = 32,
 						})
-
 						self.shootable = false
-						minetest.after(
-							3,
-							function(self)
-								self.shootable = true
-							end,
-							self
-						)
+						minetest.after(3,
+								function(self)
+									self.shootable = true
+								end,
+								self)
 					end
 				end
 			end
 		end
-
-		--[[if self.shooting_range then
-			if ctrl.LMB then
-				self.shooting_range = self.shooting_range + dtime
-			elseif ctrl.RMB then
-				self.shooting_range = self.shooting_range - dtime
-			end
-		else
-			self.shooting_range = 0
-		end]]
-
-
-			--minetest.chat_send_all(-math.deg(self.driver:get_look_vertical())-90)
-			--local cannon_pitch = (self.driver:get_look_vertical()--[[-math.pi*0.5]])/(2*math.pi)*360
-			--[[local cannon_pitch = math.deg(self.driver:get_look_vertical())
-			local cannon_pitch_anim = ((-1) * cannon_pitch) + 370
-			self.cannon:set_animation({x=cannon_pitch_anim,y=cannon_pitch_anim}, 0, 0)]]
-			--print(cannon_pitch_anim)
 
 		if self.top and not ctrl.sneak then
 			local dlh = self.driver:get_look_horizontal()
@@ -488,22 +476,6 @@ minetest.register_entity("mvehicles:tank", {
 					math.max(-100,math.min(-60,(-math.deg(dlv)-90)))
 			self.top:set_bone_position("cannon_barrel", {x=0,y=1.2,z=0},
 					{x=self.cannon_direction_vertical,y=0,z=0})
-
-			--local top_yaw = (self.driver:get_look_horizontal()--[[-math.pi*0.5]])/(2*math.pi)*360
-			--local top_yaw_anim = (top_yaw - (yaw*180/math.pi) + 360)%360 + 280
-			--self.top:set_animation({x=top_yaw_anim,y=top_yaw_anim}, 0, 0)
-
-			--minetest.chat_send_all(yaw)
-			--local top_yaw = self.driver:getyaw() --+280
-			--self.top:setyaw(45)--self.driver:getyaw())
-			--self.object:set_bone_position("top", self.object:getpos(), {x=0,y=45,z=0})
-			--local cannon_pitch = self.driver:get_look_vertical()/math.pi*360
-			--print (cannon_pitch)
-			--[[if self.top_yaw >= 360 then
-				self.top_yaw = self.top_yaw-360
-			elseif self.top_yaw <= 0 then
-				self.top_yaw = self.top_yaw+360
-			end]]
 		end
 
 		if self.shooting_range then
