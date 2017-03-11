@@ -46,12 +46,12 @@ minetest.register_node("mvehicles:hull", {
 })
 
 stairs.register_slab(
-	"hull",
-	"mvehicles:hull",
-	{cracky=2, level=2},
-	{"mvehicles_hull.png"},
-	"Pine Wood Slab",
-	default.node_sound_stone_defaults()
+		"hull",
+		"mvehicles:hull",
+		{cracky=2, level=2},
+		{"mvehicles_hull.png"},
+		"Pine Wood Slab",
+		default.node_sound_stone_defaults()
 )
 
 minetest.register_node("mvehicles:tank_tracks", {
