@@ -220,20 +220,43 @@ minetest.register_entity("mvehicles:tank", {
 		if staticdata == "" then -- initial activate
 			self.id = "mvehicles:tank\ntime:\n"..os.time().."\npos:\n"..dump(pos)
 			self.fuel = 15
-			self.top = minetest.add_entity(pos, "mvehicles:tank_top", self.id)
-			self.exhauster = minetest.add_entity(pos, "mvehicles:tank_exhauster", self.id)
 			--~ self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
 		else
 			local s = minetest.deserialize(staticdata)
 			self.id = s.id
 			self.fuel = s.fuel
+			local objs = minetest.get_objects_inside_radius(pos, 1)
+			for _,obj in pairs(objs) do
+				minetest.chat_send_all("bla0")
+				local luaent
+				if not obj:is_player() then
+					luaent = obj:get_luaentity()
+				end
+				if luaent and luaent.id == self.id then
+					minetest.chat_send_all("bla1")
+					minetest.chat_send_all(dump(luaent)) -- here to see: name is missing. https://github.com/minetest/minetest/blob/master/doc/lua_api.txt#L3526
+					if not self.top and luaent.name == "mvehicles:tank_top" then
+						minetest.chat_send_all("bla2t")
+						self.top = obj
+					elseif not self.exhauster and luaent.name == "mvehicles:tank_exhauster" then
+						minetest.chat_send_all("bla2e")
+						self.exhauster = obj
+					elseif self.exhauster and self.top then
+						break
+					end
+				end
+			end
 		end
-		if self.top then
-			self.top:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
+		if not self.top then
+			self.top = minetest.add_entity(pos, "mvehicles:tank_top", self.id)
+			minetest.chat_send_all("new top")
 		end
-		if self.exhauster then
-			self.exhauster:set_attach(self.object, "", {x=-0.7,y=0.8,z=-1.3}, {x=0,y=0,z=0})
+		if not self.exhauster then
+			self.exhauster = minetest.add_entity(pos, "mvehicles:tank_exhauster", self.id)
+			minetest.chat_send_all("new exhauster")
 		end
+		self.exhauster:set_attach(self.object, "", {x=-0.7,y=0.8,z=-1.3}, {x=0,y=0,z=0})
+		self.top:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 		self.object:setacceleration({
 			x = 0,
 			y = -tonumber(minetest.setting_get("movement_gravity")),
