@@ -8,6 +8,7 @@ _/  |______    ____ |  | __
 ]]
 
 local gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.81
+local tanks = {}
 
 minetest.register_entity("mvehicles:tank_shoot", {
 	physical = true,
@@ -60,6 +61,7 @@ minetest.register_entity("mvehicles:tank_shoot", {
 })
 
 
+
 minetest.register_entity("mvehicles:tank_top", {
 	physical = false,
 	weight = 5,
@@ -70,34 +72,18 @@ minetest.register_entity("mvehicles:tank_top", {
 	textures = {"mvehicles_tank.png"},
 
 	on_activate = function(self, staticdata, dtime_s)
-		if string.sub(staticdata, 1, 1) ~= "m" then
-			local pos = self.object:get_pos()
-			minetest.chat_send_all("’mvehicles:tank_top’ without ID"..
-				" was found at ("..pos.x..", "..pos.y..", "..pos.z.."), removing...")
+		self.id = tonumber(staticdata)
+		if not self.id or not tanks[self.id] then
 			self.object:remove()
-			return
+		elseif not tanks[self.id].bottom then
+			tanks[self.id] = nil
+			self.object:remove()
 		end
-		self.id = staticdata
-		--~ if os.time() ~= tonumber(string.sub(self.id, 22, string.find(self.id, "p")-2)) then
-			--~ if not self.object:get_attach() then
-				--~ self.object:remove()
-			--~ end
-		--~ end
 	end,
 
 	get_staticdata = function(self)
-		return self.id
+		return tostring(self.id)
 	end,
-
-	on_step = function(self)
-		if not self.ok then
-			if self.object:get_attach() then
-				self.ok = true
-			else
-				self.object:remove()
-			end
-		end
-	end
 })
 
 
@@ -111,9 +97,7 @@ minetest.register_entity("mvehicles:tank", {
 	visual = "mesh",
 	visual_size = {x=10, y=10},
 	mesh = "mvehicles_tank_bottom.b3d",
-	textures = {
-		"mvehicles_tank.png"
-		},
+	textures = {"mvehicles_tank.png"},
 	makes_footstep_sound = false,
 	automatic_rotate = false,
 	stepheight = 1.5,
@@ -122,45 +106,46 @@ minetest.register_entity("mvehicles:tank", {
 	on_activate = function(self, staticdata)
 		local pos = self.object:get_pos()
 		if staticdata == "" then -- initial activate
-			self.id = "mvehicles:tank\ntime:\n"..os.time().."\npos:\n"..dump(pos)
+			for i, obj in pairs(minetest.object_refs) do
+				if obj == self.object then
+					self.id = i
+					break
+				end
+			end
+			tanks[self.id] = {bottom = self.object}
 			self.fuel = 15
 			--~ self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
 		else
-			local s = minetest.deserialize(staticdata)
-			self.id = s.id
-			self.fuel = s.fuel
-			local objs = minetest.get_objects_inside_radius(pos, 1)
-			for _,obj in pairs(objs) do
-				minetest.chat_send_all("bla0")
-				local luaent
-				if not obj:is_player() then
-					luaent = obj:get_luaentity()
-				end
-				if luaent and luaent.id == self.id then
-					minetest.chat_send_all("bla1")
-					minetest.chat_send_all(dump(luaent)) -- here to see: name is missing. https://github.com/minetest/minetest/blob/master/doc/lua_api.txt#L3526
-					if not self.top and luaent.name == "mvehicles:tank_top" then
-						minetest.chat_send_all("bla2t")
-						self.top = obj
-					elseif self.top then
+			local s = minetest.deserialize(staticdata) or {}
+			if not s.id or not tanks[s.id] then
+				for i, obj in pairs(minetest.object_refs) do
+					if obj == self.object then
+						self.id = i
 						break
 					end
 				end
+				tanks[self.id] = {bottom = self.object}
+			else
+				self.id = s.id
+				self.top = tanks[self.id].top
 			end
+			self.fuel = tonumber(s.fuel) or 0
 		end
 		if not self.top then
-			self.top = minetest.add_entity(pos, "mvehicles:tank_top", self.id)
+			self.top = minetest.add_entity(pos, "mvehicles:tank_top", tostring(self.id))
+			tanks[self.id].top = self.top
 			minetest.chat_send_all("new top")
 		end
 		self.top:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 		self.object:set_acceleration(vector.new(0, -gravity, 0))
-		self.shootable = true
+		self.can_shoot = true
 	end,
 
 	on_death = function(self, killer)
 		self.top:remove()
 		minetest.delete_particlespawner(self.exhaust)
 		minetest.sound_stop(self.engine_sound)
+		tanks[self.id] = nil
 		if not self.driver then
 			return
 		end
@@ -182,7 +167,6 @@ minetest.register_entity("mvehicles:tank", {
 	get_staticdata = function(self)
 		return minetest.serialize({
 			fuel = self.fuel,
-			--[[top=self.top,]]
 			id = self.id})
 	end,
 
@@ -381,7 +365,7 @@ minetest.register_entity("mvehicles:tank", {
 					moved = false
 				end
 				if ctrl.jump --[[and vel.y == 0]] --[[and not turned]] then
-					if self.shootable then
+					if self.can_shoot then
 						local shoot = minetest.add_entity(vector.add(self.object:get_pos(), vector.new(0, 1.2, 0)), "mvehicles:tank_shoot", "stay")
 						shoot:set_velocity(vector.add(vel,{
 							x=(math.cos(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range),
@@ -393,10 +377,10 @@ minetest.register_entity("mvehicles:tank", {
 							gain = 0.5,
 							max_hear_distance = 32,
 						})
-						self.shootable = false
+						self.can_shoot = false
 						minetest.after(3,
 								function(self)
-									self.shootable = true
+									self.can_shoot = true
 								end,
 								self)
 					end
