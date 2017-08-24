@@ -8,7 +8,6 @@ _/  |______    ____ |  | __
 ]]
 
 local gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.81
-local tanks = {}
 
 minetest.register_entity("mvehicles:tank_shoot", {
 	physical = true,
@@ -98,29 +97,28 @@ minetest.register_entity("mvehicles:tank", {
 		self.top:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 		self.object:set_acceleration(vector.new(0, -gravity, 0))
 		self.can_shoot = true
+		self.cannon_direction_horizontal = self.object:get_yaw()
+		self.cannon_direction_vertical = -90
 	end,
 
 	on_death = function(self, killer)
 		self.top:remove()
 		minetest.delete_particlespawner(self.exhaust)
 		minetest.sound_stop(self.engine_sound)
-		tanks[self.id] = nil
+		tnt.boom(vector.round(self.object:get_pos()), {damage_radius=4,radius=3})
 		if not self.driver then
 			return
 		end
 		self.driver:set_detach()
 		self.driver:set_properties({visual_size = {x=1, y=1}})
 		self.driver:set_eye_offset({x=0,y=0,z=0}, {x=0,y=0,z=0})
-		self.object:set_animation({x=0, y=0}, 0, 0)
 		default.player_set_animation(self.driver, "stand")
 		self.driver:hud_remove(self.fuel_hud_l)
 		self.driver:hud_remove(self.fuel_hud_r)
 		self.driver:hud_remove(self.shooting_range_hud_l)
 		self.driver:hud_remove(self.shooting_range_hud_r)
 		default.player_attached[self.driver:get_player_name()] = false
-		if killer ~= self.driver then
-			self.driver:set_hp(0)
-		end
+		self.driver:set_hp(0)
 	end,
 
 	get_staticdata = function(self)
@@ -148,7 +146,8 @@ minetest.register_entity("mvehicles:tank", {
 			default.player_attached[self.driver:get_player_name()] = false
 			self.driver = nil
 			return
-		elseif not (not self.driver and not clicker:get_attach()) then
+		elseif self.driver or clicker:get_attach() or
+				default.player_attached[clicker:get_player_name()] then
 			return
 		end
 		self.driver = clicker
@@ -275,7 +274,8 @@ minetest.register_entity("mvehicles:tank", {
 	on_step = function(self, dtime)
 		local vel = self.object:get_velocity()
 		if vel.y == 0 and (vel.x ~= 0 or vel.z ~= 0) then
-			self.object:set_velocity(vector.new())
+			vel = vector.new()
+			self.object:set_velocity(vel)
 		end
 		if not self.driver then
 			return
@@ -288,75 +288,75 @@ minetest.register_entity("mvehicles:tank", {
 		--~ else
 			--~ minetest.chat_send_all(self.fuel)
 		end
-		self.fuel = self.fuel - 0.001*dtime
+		self.fuel = self.fuel - 0.001 * dtime
 		local yaw = self.object:get_yaw()
 		local ctrl = self.driver:get_player_control()
 		local turned
 		local moved
 		if vel.y == 0 then
+			local anim
 			if ctrl.left then
 				yaw = yaw + dtime
-				self.object:set_animation({x=80, y=100}, 30, 0)
+				self.cannon_direction_horizontal = self.cannon_direction_horizontal + dtime
+				anim = {{x=80, y=100}, 30, 0}
 				turned = true
 			elseif ctrl.right then
+				self.cannon_direction_horizontal = self.cannon_direction_horizontal - dtime
 				yaw = yaw - dtime
-				self.object:set_animation({x=60, y=80}, 30, 0)
+				anim = {{x=60, y=80}, 30, 0}
 				turned = true
 			else
-				self.object:set_animation({x=0, y=0}, 0, 0)
+				anim = {{x=0, y=0}, 0, 0}
 				turned = false
 			end
 			if turned then
 				self.object:set_yaw((yaw+2*math.pi)%(2*math.pi))
 				self.fuel = self.fuel - 0.01*dtime
 			else
-				if ctrl.up --[[and not turned]] then
+				if ctrl.up then
 					self.object:set_velocity({x=math.cos(yaw+math.pi/2)*2, y=vel.y, z=math.sin(yaw+math.pi/2)*2})
-					self.object:set_animation({x=0, y=20}, 30, 0)
+					anim = {{x=0, y=20}, 30, 0}
 					self.fuel = self.fuel - 0.1*dtime
 					moved = true
-				elseif ctrl.down --[[and not turned]] then
+				elseif ctrl.down then
 					self.object:set_velocity({x=math.cos(yaw+math.pi/2)*-1, y=vel.y, z=math.sin(yaw+math.pi/2)*-1})
-					self.object:set_animation({x=20, y=40}, 15, 0)
+					anim = {{x=20, y=40}, 15, 0}
 					self.fuel = self.fuel - 0.05*dtime
 					moved = true
 				else
 					moved = false
 				end
-				if ctrl.jump --[[and vel.y == 0]] --[[and not turned]] then
-					if self.can_shoot then
-						local shoot = minetest.add_entity(vector.add(self.object:get_pos(), vector.new(0, 1.2, 0)), "mvehicles:tank_shoot", "stay")
-						shoot:set_velocity(vector.add(vel,{
-							x=(math.cos(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range),
-							y=(math.cos(math.rad(-self.cannon_direction_vertical)))*self.shooting_range,
-							z=(math.sin(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range)
-						}))
-						minetest.sound_play("mvehicles_tank_shoot", {
-							pos = self.object:get_pos(),
-							gain = 0.5,
-							max_hear_distance = 32,
-						})
-						self.can_shoot = false
-						minetest.after(3,
-								function(self)
-									self.can_shoot = true
-								end,
-								self)
-					end
-				end
 			end
+			self.object:set_animation(unpack(anim))
 		end
 
 		if self.top and not ctrl.sneak then
 			local dlh = self.driver:get_look_horizontal()
 			local dlv = self.driver:get_look_vertical()
 			self.cannon_direction_horizontal = dlh
+			self.cannon_direction_vertical = math.max(-100,math.min(-60,(-math.deg(dlv)-90)))
 			self.top:set_bone_position("top_master", {x=0, y=0, z=0},
 					{x=0, y=math.deg(yaw-dlh), z=0})
-			self.cannon_direction_vertical =
-					math.max(-100,math.min(-60,(-math.deg(dlv)-90)))
 			self.top:set_bone_position("cannon_barrel", {x=0,y=1.2,z=0},
 					{x=self.cannon_direction_vertical,y=0,z=0})
+		end
+
+		if ctrl.jump and self.can_shoot then
+			local shoot = minetest.add_entity(vector.add(self.object:get_pos(), vector.new(0, 1.2, 0)), "mvehicles:tank_shoot", "stay")
+			shoot:set_velocity(vector.add(vel, {
+				x=(math.cos(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range),
+				y=(math.cos(math.rad(-self.cannon_direction_vertical)))*self.shooting_range,
+				z=(math.sin(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range)
+			}))
+			minetest.sound_play("mvehicles_tank_shoot", {
+				pos = self.object:get_pos(),
+				gain = 0.5,
+				max_hear_distance = 32,
+			})
+			self.can_shoot = false
+			minetest.after(3, function()
+				self.can_shoot = true
+			end)
 		end
 
 		if self.shooting_range then
