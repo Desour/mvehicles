@@ -7,21 +7,17 @@ _/  |______    ____ |  | __
            \/     \/     \/
 ]]
 
+local gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.81
+
 minetest.register_entity("mvehicles:tank_shoot", {
-	hp_max = 1,
 	physical = true,
 	collide_with_objects = true,
 	weight = 5,
 	collisionbox = {-0.1,-0.1,-0.1, 0.1,0.1,0.1},
-	visual ="mesh",	--"cube"/"sprite"/"upright_sprite"/"mesh"/"wielditem",
+	visual ="mesh",
 	visual_size = {x=5, y=5},
 	mesh = "mvehicles_tank_shoot.b3d",
 	textures = {"mvehicles_tank_shoot.png"},
-	colors = {},
-	spritediv = {x=1, y=1},
-	initial_sprite_basepos = {x=0, y=0},
-	is_visible = true,
-	makes_footstep_sound = false,
 	automatic_rotate = false,
 	automatic_face_movement_dir = 90.0,
 --  ^ automatically set yaw to movement direction; offset in degrees; false to disable
@@ -31,8 +27,9 @@ minetest.register_entity("mvehicles:tank_shoot", {
 	on_activate = function(self, staticdata)
 		if staticdata ~= "" then
 			self.object:remove()
+			return
 		end
-		self.object:setacceleration({x=0,y=-5,z=0})
+		self.object:set_acceleration(vector.new(0, -gravity, 0))
 	end,
 
 	get_staticdata = function(self)
@@ -40,33 +37,9 @@ minetest.register_entity("mvehicles:tank_shoot", {
 	end,
 
 	on_step = function(self, dtime)
-		local acc = self.object:getacceleration()
-		local vel = self.object:getvelocity()
-		local pos = self.object:getpos()
-		--[[if self.oldpos and self.oldvel and self.oldacc then
-			minetest.chat_send_all("oldacc = " .. dump(self.oldacc))
-			minetest.chat_send_all("oldvel = " .. dump(self.oldvel))
-			minetest.chat_send_all(dump(vector.add(self.oldvel, {
-				x=dtime * self.oldacc.x,
-				y=dtime * self.oldacc.y,
-				z=dtime * self.oldacc.z})))
-			--~ if not vel <=
-					vector.add(self.oldvel, {
-						x=math.ceil(dtime * self.oldacc.x),
-						y=math.ceil(dtime * self.oldacc.y),
-						z=math.ceil(dtime * self.oldacc.z)}) then
-			if math.floor(vel.x * 10) / 10 ~=
-					math.floor(dtime * self.oldacc.x * 10) / 10 or
-					math.floor(vel.y * 10) / 10 ~=
-					math.floor(dtime * self.oldacc.y * 10) / 10 or
-					math.floor(vel.y * 10) / 10 ~=
-					math.floor(dtime * self.oldacc.y * 10) / 10 then
-				minetest.chat_send_all("explosion")
-			end
-		else
-			minetest.chat_send_all("no oldpos and oldvel and oldacc")
-		end]]
-
+		--~ local acc = self.object:get_acceleration()
+		local vel = self.object:get_velocity()
+		local pos = self.object:get_pos()
 		if self.oldvel then
 			if ((self.oldvel.x ~= 0 and vel.x == 0)
 			or (self.oldvel.y ~= 0 and vel.y == 0)
@@ -75,9 +48,9 @@ minetest.register_entity("mvehicles:tank_shoot", {
 				self.explosion = true
 			end
 			if self.explosion == true then
-				tnt.boom(vector.round(pos),
-						{damage_radius=3,radius=2, ignore_protection=true})
+				tnt.boom(vector.round(pos),	{damage_radius=3,radius=2})
 				self.object:remove()
+				return
 			end
 		end
 
@@ -86,12 +59,11 @@ minetest.register_entity("mvehicles:tank_shoot", {
 
 		self.oldpos = pos
 		self.oldvel = vel
-		self.oldacc = acc
+		--~ self.oldacc = acc
 	end
 })
 
 minetest.register_entity("mvehicles:tank_exhauster", {
-	hp_max = 1,
 	physical = false,
 	weight = 5,
 	collisionbox = {0,0,0, 0,0,0},
@@ -99,16 +71,11 @@ minetest.register_entity("mvehicles:tank_exhauster", {
 	visual_size = {x=1, y=1},
 	mesh = "mvehicles_tank_exhauster.b3d",
 	textures = {"mvehicles_tank.png"},
-	colors = {},
-	spritediv = {x=1, y=1},
-	initial_sprite_basepos = {x=0, y=0},
 	is_visible = true,
-	makes_footstep_sound = false,
-	automatic_rotate = false,
 
 	on_activate = function(self, staticdata, dtime_s)
 		if string.sub(staticdata, 1, 1) ~= "m" then
-			local pos = self.object:getpos()
+			local pos = self.object:get_pos()
 			minetest.chat_send_all("’mvehicles:tank_exhauster’ without ID"..
 				" was found at ("..pos.x..", "..pos.y..", "..pos.z.."), removing...")
 			self.object:remove()
@@ -141,7 +108,6 @@ minetest.register_entity("mvehicles:tank_exhauster", {
 
 
 minetest.register_entity("mvehicles:tank_top", {
-	hp_max = 1,
 	physical = false,
 	weight = 5,
 	collisionbox = {0,0,0, 0,0,0},
@@ -149,16 +115,10 @@ minetest.register_entity("mvehicles:tank_top", {
 	visual_size = {x=1, y=1},
 	mesh = "mvehicles_tank_top.b3d",
 	textures = {"mvehicles_tank.png"},
-	colors = {},
-	spritediv = {x=1, y=1},
-	initial_sprite_basepos = {x=0, y=0},
-	is_visible = true,
-	makes_footstep_sound = false,
-	automatic_rotate = false,
 
 	on_activate = function(self, staticdata, dtime_s)
 		if string.sub(staticdata, 1, 1) ~= "m" then
-			local pos = self.object:getpos()
+			local pos = self.object:get_pos()
 			minetest.chat_send_all("’mvehicles:tank_top’ without ID"..
 				" was found at ("..pos.x..", "..pos.y..", "..pos.z.."), removing...")
 			self.object:remove()
@@ -199,24 +159,15 @@ minetest.register_entity("mvehicles:tank", {
 	visual_size = {x=10, y=10},
 	mesh = "mvehicles_tank_bottom.b3d",
 	textures = {
-		"mvehicles_tank.png"--[[,
-		"mvehicles_decal_1.png",
-		"mvehicles_decal_2.png",
-		"mvehicles_decal_3.png",
-		"mvehicles_decal_4.png",
-		"mvehicles_decal_5.png"]]
+		"mvehicles_tank.png"
 		},
-	colors = {},
-	spritediv = {x=1, y=1},
-	initial_sprite_basepos = {x=0, y=0},
-	is_visible = true,
 	makes_footstep_sound = false,
 	automatic_rotate = false,
 	stepheight = 1.5,
 
 
 	on_activate = function(self, staticdata)
-		local pos = self.object:getpos()
+		local pos = self.object:get_pos()
 		if staticdata == "" then -- initial activate
 			self.id = "mvehicles:tank\ntime:\n"..os.time().."\npos:\n"..dump(pos)
 			self.fuel = 15
@@ -257,10 +208,7 @@ minetest.register_entity("mvehicles:tank", {
 		end
 		self.exhauster:set_attach(self.object, "", {x=-0.7,y=0.8,z=-1.3}, {x=0,y=0,z=0})
 		self.top:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
-		self.object:setacceleration({
-			x = 0,
-			y = -tonumber(minetest.setting_get("movement_gravity")),
-			z = 0})
+		self.object:set_acceleration(vector.new(0, -gravity, 0))
 		self.shootable = true
 	end,
 
@@ -282,7 +230,7 @@ minetest.register_entity("mvehicles:tank", {
 			self.driver:set_properties({visual_size = {x=1, y=1}})
 			self.driver:set_eye_offset({x=0,y=0,z=0}, {x=0,y=0,z=0})
 			self.object:set_animation({x=0, y=0}, 0, 0)
-			default.player_set_animation(self.driver, stand)
+			default.player_set_animation(self.driver, "stand")
 			minetest.delete_particlespawner(self.exhaust)
 			minetest.sound_stop(self.engine_sound)
 			self.driver:hud_remove(self.fuel_hud_l)
@@ -297,7 +245,7 @@ minetest.register_entity("mvehicles:tank", {
 			self.driver:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 			self.driver:set_properties({visual_size = {x=0.1, y=0.1}})
 			self.driver:set_eye_offset({x=0,y=2,z=0}, {x=0,y=10,z=-3})
-			default.player_set_animation(self.driver, sit)
+			default.player_set_animation(self.driver, "sit")
 
 			if self.fuel then
 				if self.fuel > 0 then
@@ -350,7 +298,7 @@ minetest.register_entity("mvehicles:tank", {
 				size = { x=50, y=50},
 			})
 
-			self.shooting_range = 10
+			self.shooting_range = 30
 
 
 			--[[local shooting_range_2 = ((30 - shooting_range_1)^2)^0.5
@@ -415,9 +363,9 @@ minetest.register_entity("mvehicles:tank", {
 
 
 	on_step = function(self, dtime)
-		local vel = self.object:getvelocity()
+		local vel = self.object:get_velocity()
 		if vel.y == 0 and (vel.x ~= 0 or vel.z ~= 0) then
-			self.object:setvelocity({x=0, y=0, z=0})
+			self.object:set_velocity(vector.new())
 		end
 		if not self.driver then
 			return
@@ -431,7 +379,7 @@ minetest.register_entity("mvehicles:tank", {
 			--~ minetest.chat_send_all(self.fuel)
 		end
 		self.fuel = self.fuel - 0.001*dtime
-		local yaw = self.object:getyaw()
+		local yaw = self.object:get_yaw()
 		local ctrl = self.driver:get_player_control()
 		local turned
 		local moved
@@ -449,16 +397,16 @@ minetest.register_entity("mvehicles:tank", {
 				turned = false
 			end
 			if turned then
-				self.object:setyaw((yaw+2*math.pi)%(2*math.pi))
+				self.object:set_yaw((yaw+2*math.pi)%(2*math.pi))
 				self.fuel = self.fuel - 0.01*dtime
 			else
 				if ctrl.up --[[and not turned]] then
-					self.object:setvelocity({x=math.cos(yaw+math.pi/2)*2, y=vel.y, z=math.sin(yaw+math.pi/2)*2})
+					self.object:set_velocity({x=math.cos(yaw+math.pi/2)*2, y=vel.y, z=math.sin(yaw+math.pi/2)*2})
 					self.object:set_animation({x=0, y=20}, 30, 0)
 					self.fuel = self.fuel - 0.1*dtime
 					moved = true
 				elseif ctrl.down --[[and not turned]] then
-					self.object:setvelocity({x=math.cos(yaw+math.pi/2)*-1, y=vel.y, z=math.sin(yaw+math.pi/2)*-1})
+					self.object:set_velocity({x=math.cos(yaw+math.pi/2)*-1, y=vel.y, z=math.sin(yaw+math.pi/2)*-1})
 					self.object:set_animation({x=20, y=40}, 15, 0)
 					self.fuel = self.fuel - 0.05*dtime
 					moved = true
@@ -467,14 +415,14 @@ minetest.register_entity("mvehicles:tank", {
 				end
 				if ctrl.jump --[[and vel.y == 0]] --[[and not turned]] then
 					if self.shootable then
-						local shoot = minetest.add_entity(vector.add(self.object:getpos(), {x=0,y=1.2,z=0}), "mvehicles:tank_shoot")
-						shoot:setvelocity(vector.add(vel,{
+						local shoot = minetest.add_entity(vector.add(self.object:get_pos(), {x=0,y=1.2,z=0}), "mvehicles:tank_shoot")
+						shoot:set_velocity(vector.add(vel,{
 							x=(math.cos(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range),
 							y=(math.cos(math.rad(-self.cannon_direction_vertical)))*self.shooting_range,
 							z=(math.sin(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range)
 						}))
 						minetest.sound_play("mvehicles_tank_shoot", {
-							pos = self.object:getpos(),
+							pos = self.object:get_pos(),
 							gain = 0.5,
 							max_hear_distance = 32,
 						})

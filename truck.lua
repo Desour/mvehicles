@@ -7,6 +7,8 @@ _/  |________ __ __   ____ |  | __
                          \/     \/
 ]]
 
+local gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.81
+
 minetest.register_entity("mvehicles:truck", {
 	hp_max = 10,
 	physical = true,
@@ -31,7 +33,7 @@ minetest.register_entity("mvehicles:truck", {
 	backface_culling = false, -- false to disable backface_culling for model
 
 	on_activate = function(self, staticdata)
-		self.object:setacceleration({x=0, y=-tonumber(minetest.setting_get("movement_gravity")), z=0})
+		self.object:set_acceleration(vector.new(0, -gravity, 0))
 		self.anim_m = 0
 		self.anim_t = 0
 		self.antiforce = 1
@@ -67,11 +69,11 @@ minetest.register_entity("mvehicles:truck", {
 	end,
 
 	on_step = function(self, dtime)
-		local pos = self.object:getpos()
-		local vel = self.object:getvelocity()
-		local acc = self.object:getacceleration()
+		local pos = self.object:get_pos()
+		local vel = self.object:get_velocity()
+		local acc = self.object:get_acceleration()
 		--[[if vel.y == 0 and (vel.x ~= 0 or vel.z ~= 0) then
-			self.object:setvelocity({x=0, y=0, z=0})
+			self.object:set_velocity({x=0, y=0, z=0})
 		end]]
 		if vel.y == 0 then
 			local animspeed = (vel.x^2 + vel.z^2)^0.5
@@ -83,8 +85,8 @@ minetest.register_entity("mvehicles:truck", {
 		else
 			self.antiforce = 0.995
 		end
-		self.object:setvelocity({x=vel.x*self.antiforce,y=vel.y*self.antiforce,z=vel.z*self.antiforce})
-		--[[self.object:setvelocity({
+		self.object:set_velocity({x=vel.x*self.antiforce,y=vel.y*self.antiforce,z=vel.z*self.antiforce})
+		--[[self.object:set_velocity({
 			x=vel.x-((vel.x^2)*(vel.x/((vel.x^2)^0.5))*self.antiforce/2),
 			y=vel.y-((vel.y^2)*(vel.x/((vel.x^2)^0.5))*self.antiforce/2),
 			z=vel.z-((vel.z^2)*(vel.x/((vel.x^2)^0.5))*self.antiforce/2)
@@ -92,20 +94,20 @@ minetest.register_entity("mvehicles:truck", {
 		if not self.driver then
 			return
 		end
-		local yaw = self.object:getyaw()
+		local yaw = self.object:get_yaw()
 		local ctrl = self.driver:get_player_control()
 		local turned
 		local moved
 		if ctrl.sneak then
 			self.antiforce = 0.8
-			--~ self.object:setvelocity({x=0,y=vel.y,z=0})
+			--~ self.object:set_velocity({x=0,y=vel.y,z=0})
 			moved = false
 		elseif ctrl.up then
-			self.object:setvelocity(vector.add(vel,{x=math.cos(yaw+math.pi/2)*2*dtime, y=0, z=math.sin(yaw+math.pi/2)*2*dtime}))
+			self.object:set_velocity(vector.add(vel,{x=math.cos(yaw+math.pi/2)*2*dtime, y=0, z=math.sin(yaw+math.pi/2)*2*dtime}))
 			self.anim_m = 0
 			moved = true
 		elseif ctrl.down then
-			self.object:setvelocity(vector.add(vel,{x=math.cos(yaw+math.pi/2)*-1*dtime, y=0, z=math.sin(yaw+math.pi/2)*-1*dtime}))
+			self.object:set_velocity(vector.add(vel,{x=math.cos(yaw+math.pi/2)*-1*dtime, y=0, z=math.sin(yaw+math.pi/2)*-1*dtime}))
 			self.anim_m = 20
 			moved = true
 		else
@@ -113,14 +115,14 @@ minetest.register_entity("mvehicles:truck", {
 		end
 		if ctrl.left then
 			local yaw_n = dtime*((vel.x^2 + vel.z^2)^0.5)/10
-			self.object:setyaw(yaw+yaw_n)
-			self.object:setpos(pos)
+			self.object:set_yaw(yaw+yaw_n)
+			self.object:set_pos(pos)
 			self.anim_t = 80
 			turned = true
 		elseif ctrl.right then
 			local yaw_n = dtime*((vel.x^2 + vel.z^2)^0.5)/10
-			self.object:setyaw(yaw-yaw_n)
-			self.object:setpos(pos)
+			self.object:set_yaw(yaw-yaw_n)
+			self.object:set_pos(pos)
 			self.anim_t = 40
 			turned = true
 		else

@@ -9,16 +9,17 @@
 
 local load_time_start = os.clock()
 
+local modname = minetest.get_current_modname()
 
-local path = minetest.get_modpath("mvehicles")
+local path = minetest.get_modpath(modname).. DIR_DELIM
 
-dofile(path.."/tank.lua")
-dofile(path.."/truck.lua")
-dofile(path.."/construction.lua")
+dofile(path.."tank.lua")
+dofile(path.."truck.lua")
+dofile(path.."construction.lua")
 
 
 local time = math.floor(tonumber(os.clock()-load_time_start)*100+0.5)/100
-local msg = "[mvehicles] loaded after ca. "..time
+local msg = "["..modname.."] loaded after ca. "..time
 if time > 0.05 then
 	print(msg)
 else
