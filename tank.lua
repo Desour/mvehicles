@@ -34,29 +34,20 @@ minetest.register_entity("mvehicles:tank_shoot", {
 	end,
 
 	on_step = function(self, dtime)
-		--~ local acc = self.object:get_acceleration()
 		local vel = self.object:get_velocity()
-		local pos = self.object:get_pos()
-		if self.oldvel then
-			if ((self.oldvel.x ~= 0 and vel.x == 0)
-			or (self.oldvel.y ~= 0 and vel.y == 0)
-			or (self.oldvel.z ~= 0 and vel.z == 0))
-			and (not self.explosion) then
-				self.explosion = true
-			end
-			if self.explosion == true then
-				tnt.boom(vector.round(pos),	{damage_radius=3,radius=2})
-				self.object:remove()
-				return
-			end
+		if self.oldvel and
+				((self.oldvel.x ~= 0 and vel.x == 0) or
+				(self.oldvel.y ~= 0 and vel.y == 0) or
+				(self.oldvel.z ~= 0 and vel.z == 0)) then
+			tnt.boom(vector.round(self.object:get_pos()), {damage_radius=3,radius=2})
+			self.object:remove()
+			return
 		end
 
 		local rot = -math.deg(math.atan(vel.y/(vel.x^2+vel.z^2)^0.5))
 		self.object:set_animation({x=rot+90, y=rot+90}, 0, 0)
 
-		--~ self.oldpos = pos
 		self.oldvel = vel
-		--~ self.oldacc = acc
 	end
 })
 
@@ -70,19 +61,10 @@ minetest.register_entity("mvehicles:tank_top", {
 	visual_size = {x=1, y=1},
 	mesh = "mvehicles_tank_top.b3d",
 	textures = {"mvehicles_tank.png"},
-
 	on_activate = function(self, staticdata, dtime_s)
-		self.id = tonumber(staticdata)
-		if not self.id or not tanks[self.id] then
-			self.object:remove()
-		elseif not tanks[self.id].bottom then
-			tanks[self.id] = nil
+		if staticdata ~= "stay" then
 			self.object:remove()
 		end
-	end,
-
-	get_staticdata = function(self)
-		return tostring(self.id)
 	end,
 })
 
@@ -106,36 +88,13 @@ minetest.register_entity("mvehicles:tank", {
 	on_activate = function(self, staticdata)
 		local pos = self.object:get_pos()
 		if staticdata == "" then -- initial activate
-			for i, obj in pairs(minetest.object_refs) do
-				if obj == self.object then
-					self.id = i
-					break
-				end
-			end
-			tanks[self.id] = {bottom = self.object}
 			self.fuel = 15
 			--~ self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
 		else
 			local s = minetest.deserialize(staticdata) or {}
-			if not s.id or not tanks[s.id] then
-				for i, obj in pairs(minetest.object_refs) do
-					if obj == self.object then
-						self.id = i
-						break
-					end
-				end
-				tanks[self.id] = {bottom = self.object}
-			else
-				self.id = s.id
-				self.top = tanks[self.id].top
-			end
 			self.fuel = tonumber(s.fuel) or 0
 		end
-		if not self.top then
-			self.top = minetest.add_entity(pos, "mvehicles:tank_top", tostring(self.id))
-			tanks[self.id].top = self.top
-			minetest.chat_send_all("new top")
-		end
+		self.top = minetest.add_entity(pos, "mvehicles:tank_top", "stay")
 		self.top:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 		self.object:set_acceleration(vector.new(0, -gravity, 0))
 		self.can_shoot = true
@@ -167,7 +126,7 @@ minetest.register_entity("mvehicles:tank", {
 	get_staticdata = function(self)
 		return minetest.serialize({
 			fuel = self.fuel,
-			id = self.id})
+		})
 	end,
 
 	on_rightclick = function(self, clicker)
