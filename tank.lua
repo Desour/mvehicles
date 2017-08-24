@@ -25,15 +25,11 @@ minetest.register_entity("mvehicles:tank_shoot", {
 --  ^ limit automatic rotation to this value in degrees per second. values < 0 no limit
 
 	on_activate = function(self, staticdata)
-		if staticdata ~= "" then
+		if staticdata ~= "stay" then
 			self.object:remove()
 			return
 		end
 		self.object:set_acceleration(vector.new(0, -gravity, 0))
-	end,
-
-	get_staticdata = function(self)
-		return "activated"
 	end,
 
 	on_step = function(self, dtime)
@@ -57,54 +53,11 @@ minetest.register_entity("mvehicles:tank_shoot", {
 		local rot = -math.deg(math.atan(vel.y/(vel.x^2+vel.z^2)^0.5))
 		self.object:set_animation({x=rot+90, y=rot+90}, 0, 0)
 
-		self.oldpos = pos
+		--~ self.oldpos = pos
 		self.oldvel = vel
 		--~ self.oldacc = acc
 	end
 })
-
-minetest.register_entity("mvehicles:tank_exhauster", {
-	physical = false,
-	weight = 5,
-	collisionbox = {0,0,0, 0,0,0},
-	visual = "mesh",
-	visual_size = {x=1, y=1},
-	mesh = "mvehicles_tank_exhauster.b3d",
-	textures = {"mvehicles_tank.png"},
-	is_visible = true,
-
-	on_activate = function(self, staticdata, dtime_s)
-		if string.sub(staticdata, 1, 1) ~= "m" then
-			local pos = self.object:get_pos()
-			minetest.chat_send_all("’mvehicles:tank_exhauster’ without ID"..
-				" was found at ("..pos.x..", "..pos.y..", "..pos.z.."), removing...")
-			self.object:remove()
-			return
-		end
-		self.id = staticdata
-		--~ if os.time() ~= tonumber(string.sub(self.id, 22, string.find(self.id, "p")-2)) then
-			--~ if not self.object:get_attach() then
-				--~ self.object:remove()
-			--~ end
-		--~ end
-	end,
-
-	get_staticdata = function(self)
-		return self.id
-	end,
-
-	on_step = function(self)
-		if not self.ok then
-			if self.object:get_attach() then
-				self.ok = true
-			else
-				self.object:remove()
-			end
-		end
-	end
-})
-
-
 
 
 minetest.register_entity("mvehicles:tank_top", {
@@ -189,10 +142,7 @@ minetest.register_entity("mvehicles:tank", {
 					if not self.top and luaent.name == "mvehicles:tank_top" then
 						minetest.chat_send_all("bla2t")
 						self.top = obj
-					elseif not self.exhauster and luaent.name == "mvehicles:tank_exhauster" then
-						minetest.chat_send_all("bla2e")
-						self.exhauster = obj
-					elseif self.exhauster and self.top then
+					elseif self.top then
 						break
 					end
 				end
@@ -202,22 +152,37 @@ minetest.register_entity("mvehicles:tank", {
 			self.top = minetest.add_entity(pos, "mvehicles:tank_top", self.id)
 			minetest.chat_send_all("new top")
 		end
-		if not self.exhauster then
-			self.exhauster = minetest.add_entity(pos, "mvehicles:tank_exhauster", self.id)
-			minetest.chat_send_all("new exhauster")
-		end
-		self.exhauster:set_attach(self.object, "", {x=-0.7,y=0.8,z=-1.3}, {x=0,y=0,z=0})
 		self.top:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 		self.object:set_acceleration(vector.new(0, -gravity, 0))
 		self.shootable = true
 	end,
 
+	on_death = function(self, killer)
+		self.top:remove()
+		minetest.delete_particlespawner(self.exhaust)
+		minetest.sound_stop(self.engine_sound)
+		if not self.driver then
+			return
+		end
+		self.driver:set_detach()
+		self.driver:set_properties({visual_size = {x=1, y=1}})
+		self.driver:set_eye_offset({x=0,y=0,z=0}, {x=0,y=0,z=0})
+		self.object:set_animation({x=0, y=0}, 0, 0)
+		default.player_set_animation(self.driver, "stand")
+		self.driver:hud_remove(self.fuel_hud_l)
+		self.driver:hud_remove(self.fuel_hud_r)
+		self.driver:hud_remove(self.shooting_range_hud_l)
+		self.driver:hud_remove(self.shooting_range_hud_r)
+		default.player_attached[self.driver:get_player_name()] = false
+		if killer ~= self.driver then
+			self.driver:set_hp(0)
+		end
+	end,
 
 	get_staticdata = function(self)
 		return minetest.serialize({
 			fuel = self.fuel,
-			--[[top=self.top,
-			exhauster=self.exhauster,]]
+			--[[top=self.top,]]
 			id = self.id})
 	end,
 
@@ -239,126 +204,128 @@ minetest.register_entity("mvehicles:tank", {
 			self.driver:hud_remove(self.shooting_range_hud_r)
 			default.player_attached[self.driver:get_player_name()] = false
 			self.driver = nil
-		elseif not self.driver and not clicker:get_attach() then
-			self.driver = clicker
-			default.player_attached[self.driver:get_player_name()] = true
-			self.driver:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
-			self.driver:set_properties({visual_size = {x=0.1, y=0.1}})
-			self.driver:set_eye_offset({x=0,y=2,z=0}, {x=0,y=10,z=-3})
-			default.player_set_animation(self.driver, "sit")
-
-			if self.fuel then
-				if self.fuel > 0 then
-					minetest.chat_send_all("fuel: "..self.fuel)
-				else
-					minetest.chat_send_all("no fuel, spawn a new tank")
-				end
-				self.fuel_hud_1 = self.fuel
-				self.fuel_hud_2 = 0
-				while self.fuel_hud_1 > 30 do
-					self.fuel_hud_1 = self.fuel_hud_1 - 1
-					self.fuel_hud_2 = self.fuel_hud_2 + 1
-				end
-			else
-				self.fuel_hud_1 = 0
-				self.fuel_hud_2 = 0
-			end
-
-			self.fuel_hud_l = self.driver:hud_add({
-				hud_elem_type = "statbar", -- see HUD element types
-				--  ^ type of HUD element, can be either of "image", "text", "statbar", or "inventory"
-				position = {x=0.01, y=0.89},
-				--  ^ Left corner position of element
-				name = "tankhud",
-				scale = {x=2, y=2},
-				text = "mvehicles_fuel_can.png",
-				number = self.fuel_hud_1,
-				item = 3,
-				--  ^ Selected item in inventory.  0 for no item selected.
-				direction = 3,
-				--  ^ Direction: 0: left-right, 1: right-left, 2: top-bottom, 3: bottom-top
-				alignment = {x=0, y=0},
-				--  ^ See "HUD Element Types"
-				offset = {x=0, y=0},
-				--  ^ See "HUD Element Types"
-				size = { x=50, y=50},
-				--  ^ Size of element in pixels
-			})
-			self.fuel_hud_r = self.driver:hud_add({
-				hud_elem_type = "statbar",
-				position = {x=0.02, y=0.89},
-				name = "tankhud",
-				scale = {x=2, y=2},
-				text = "mvehicles_fuel_can.png",
-				number = self.fuel_hud_2,
-				item = 3,
-				direction = 3,
-				alignment = {x=0, y=0},
-				offset = {x=0, y=0},
-				size = { x=50, y=50},
-			})
-
-			self.shooting_range = 30
-
-
-			--[[local shooting_range_2 = ((30 - shooting_range_1)^2)^0.5
-			local shooting_range_1 = shooting_range_1 - math.abs(shooting_range_1 - 30)
-			local shooting_range_2 = shooting_range_2 - (30 - shooting_range_2)]]
-
-			self.shooting_range_hud_l = self.driver:hud_add({
-				hud_elem_type = "statbar",
-				position = {x=0.06, y=0.89},
-				name = "tankhud",
-				scale = {x=2, y=2},
-				text = "default_mese_crystal.png",
-				number = 0,
-				item = 3,
-				direction = 3,
-				alignment = {x=0, y=0},
-				offset = {x=0, y=0},
-				size = { x=50, y=50},
-			})
-			self.shooting_range_hud_r = self.driver:hud_add({
-				hud_elem_type = "statbar",
-				position = {x=0.07, y=0.89},
-				name = "tankhud",
-				scale = {x=2, y=2},
-				text = "default_mese_crystal.png",
-				number = 0,
-				item = 3,
-				direction = 3,
-				alignment = {x=0, y=0},
-				offset = {x=0, y=0},
-				size = { x=50, y=50},
-			})
-
-			self.exhaust = minetest.add_particlespawner({
-				amount = 10,
-				time = 0,
-				minpos = {x=0, y=0.5, z=0},
-				maxpos = {x=0, y=0.5, z=0},
-				minvel = {x=-0.1, y=1, z=-0.1},
-				maxvel = {x=0.1, y=1.5, z=0.1},
-				minacc = {x=0, y=0, z=0},
-				maxacc = {x=0, y=0, z=0},
-				minexptime = 1,
-				maxexptime = 2,
-				minsize = 1,
-				maxsize = 3,
-				collisiondetection = true,
-				collision_removal = false,
-				attached = self.exhauster,
-				vertical = false,
-				texture = "tnt_smoke.png",
-			})
-
-			self.engine_sound = minetest.sound_play("mvehicles_engine", {
-				object = self.object,
-				gain = 0.5,
-				max_hear_distance = 32,
-				loop = true,
-			})
+			return
+		elseif not (not self.driver and not clicker:get_attach()) then
+			return
 		end
+		self.driver = clicker
+		default.player_attached[self.driver:get_player_name()] = true
+		self.driver:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
+		self.driver:set_properties({visual_size = {x=0.1, y=0.1}})
+		self.driver:set_eye_offset({x=0,y=2,z=0}, {x=0,y=10,z=-3})
+		default.player_set_animation(self.driver, "sit")
+
+		if self.fuel then
+			if self.fuel > 0 then
+				minetest.chat_send_all("fuel: "..self.fuel)
+			else
+				minetest.chat_send_all("no fuel, spawn a new tank")
+			end
+			self.fuel_hud_1 = self.fuel
+			self.fuel_hud_2 = 0
+			while self.fuel_hud_1 > 30 do
+				self.fuel_hud_1 = self.fuel_hud_1 - 1
+				self.fuel_hud_2 = self.fuel_hud_2 + 1
+			end
+		else
+			self.fuel_hud_1 = 0
+			self.fuel_hud_2 = 0
+		end
+
+		self.fuel_hud_l = self.driver:hud_add({
+			hud_elem_type = "statbar", -- see HUD element types
+			--  ^ type of HUD element, can be either of "image", "text", "statbar", or "inventory"
+			position = {x=0.01, y=0.89},
+			--  ^ Left corner position of element
+			name = "tankhud",
+			scale = {x=2, y=2},
+			text = "mvehicles_fuel_can.png",
+			number = self.fuel_hud_1,
+			item = 3,
+			--  ^ Selected item in inventory.  0 for no item selected.
+			direction = 3,
+			--  ^ Direction: 0: left-right, 1: right-left, 2: top-bottom, 3: bottom-top
+			alignment = {x=0, y=0},
+			--  ^ See "HUD Element Types"
+			offset = {x=0, y=0},
+			--  ^ See "HUD Element Types"
+			size = { x=50, y=50},
+			--  ^ Size of element in pixels
+		})
+		self.fuel_hud_r = self.driver:hud_add({
+			hud_elem_type = "statbar",
+			position = {x=0.02, y=0.89},
+			name = "tankhud",
+			scale = {x=2, y=2},
+			text = "mvehicles_fuel_can.png",
+			number = self.fuel_hud_2,
+			item = 3,
+			direction = 3,
+			alignment = {x=0, y=0},
+			offset = {x=0, y=0},
+			size = { x=50, y=50},
+		})
+
+		self.shooting_range = 30
+
+
+		--[[local shooting_range_2 = ((30 - shooting_range_1)^2)^0.5
+		local shooting_range_1 = shooting_range_1 - math.abs(shooting_range_1 - 30)
+		local shooting_range_2 = shooting_range_2 - (30 - shooting_range_2)]]
+
+		self.shooting_range_hud_l = self.driver:hud_add({
+			hud_elem_type = "statbar",
+			position = {x=0.06, y=0.89},
+			name = "tankhud",
+			scale = {x=2, y=2},
+			text = "default_mese_crystal.png",
+			number = 0,
+			item = 3,
+			direction = 3,
+			alignment = {x=0, y=0},
+			offset = {x=0, y=0},
+			size = { x=50, y=50},
+		})
+		self.shooting_range_hud_r = self.driver:hud_add({
+			hud_elem_type = "statbar",
+			position = {x=0.07, y=0.89},
+			name = "tankhud",
+			scale = {x=2, y=2},
+			text = "default_mese_crystal.png",
+			number = 0,
+			item = 3,
+			direction = 3,
+			alignment = {x=0, y=0},
+			offset = {x=0, y=0},
+			size = { x=50, y=50},
+		})
+
+		self.exhaust = minetest.add_particlespawner({
+			amount = 10,
+			time = 0,
+			minpos = {x=-0.5,y=1.25,z=-1.2},
+			maxpos = {x=-0.5,y=1.25,z=-1.2},
+			minvel = {x=-0.1, y=1, z=-0.1},
+			maxvel = {x=0.1, y=1.5, z=0.1},
+			minacc = {x=0, y=0, z=0},
+			maxacc = {x=0, y=0, z=0},
+			minexptime = 1,
+			maxexptime = 2,
+			minsize = 1,
+			maxsize = 3,
+			collisiondetection = true,
+			collision_removal = false,
+			attached = self.object,
+			vertical = false,
+			texture = "tnt_smoke.png",
+		})
+
+		self.engine_sound = minetest.sound_play("mvehicles_engine", {
+			object = self.object,
+			gain = 0.5,
+			max_hear_distance = 32,
+			loop = true,
+		})
 	end,
 
 
@@ -415,7 +382,7 @@ minetest.register_entity("mvehicles:tank", {
 				end
 				if ctrl.jump --[[and vel.y == 0]] --[[and not turned]] then
 					if self.shootable then
-						local shoot = minetest.add_entity(vector.add(self.object:get_pos(), {x=0,y=1.2,z=0}), "mvehicles:tank_shoot")
+						local shoot = minetest.add_entity(vector.add(self.object:get_pos(), vector.new(0, 1.2, 0)), "mvehicles:tank_shoot", "stay")
 						shoot:set_velocity(vector.add(vel,{
 							x=(math.cos(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range),
 							y=(math.cos(math.rad(-self.cannon_direction_vertical)))*self.shooting_range,
@@ -462,5 +429,5 @@ minetest.register_entity("mvehicles:tank", {
 		end
 		self.driver:hud_change(self.shooting_range_hud_l, "number", self.shooting_range_hud_1)
 		self.driver:hud_change(self.shooting_range_hud_r, "number", self.shooting_range_hud_2)
-	end
+	end,
 })
