@@ -7,66 +7,17 @@ _/  |______    ____ |  | __
            \/     \/     \/
 ]]
 
-local gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.81
-
-minetest.register_entity("mvehicles:tank_shoot", {
-	physical = true,
-	collide_with_objects = true,
-	weight = 5,
-	collisionbox = {-0.1,-0.1,-0.1, 0.1,0.1,0.1},
-	visual ="mesh",
-	visual_size = {x=5, y=5},
-	mesh = "mvehicles_tank_shoot.b3d",
-	textures = {"mvehicles_tank_shoot.png"},
-	automatic_rotate = false,
-	automatic_face_movement_dir = 90.0,
---  ^ automatically set yaw to movement direction; offset in degrees; false to disable
-	automatic_face_movement_max_rotation_per_sec = -1,
---  ^ limit automatic rotation to this value in degrees per second. values < 0 no limit
-
-	on_activate = function(self, staticdata)
-		if staticdata ~= "stay" then
-			self.object:remove()
-			return
-		end
-		self.object:set_acceleration(vector.new(0, -gravity, 0))
-	end,
-
-	on_step = function(self, dtime)
-		local vel = self.object:get_velocity()
-		if self.oldvel and
-				((self.oldvel.x ~= 0 and vel.x == 0) or
-				(self.oldvel.y ~= 0 and vel.y == 0) or
-				(self.oldvel.z ~= 0 and vel.z == 0)) then
-			tnt.boom(vector.round(self.object:get_pos()), {damage_radius=3,radius=2})
-			self.object:remove()
-			return
-		end
-
-		local rot = -math.deg(math.atan(vel.y/(vel.x^2+vel.z^2)^0.5))
-		self.object:set_animation({x=rot+90, y=rot+90}, 0, 0)
-
-		self.oldvel = vel
+local registered_turrets = {}
+function mvehicles.register_tank_turret(name, def)
+	def.on_activate = def.on_activate or function(tank)
+		tank.turret = minetest.add_entity(tank.object:get_pos(), def.entity, "stay")
+		tank.turret:set_attach(tank.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 	end
-})
+	registered_turrets[name] = def
+end
 
 
-
-minetest.register_entity("mvehicles:tank_top", {
-	physical = false,
-	weight = 5,
-	collisionbox = {0,0,0, 0,0,0},
-	visual = "mesh",
-	visual_size = {x=1, y=1},
-	mesh = "mvehicles_tank_top.b3d",
-	textures = {"mvehicles_tank.png"},
-	on_activate = function(self, staticdata, dtime_s)
-		if staticdata ~= "stay" then
-			self.object:remove()
-		end
-	end,
-})
-
+local gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.81
 
 
 minetest.register_entity("mvehicles:tank", {
@@ -88,21 +39,24 @@ minetest.register_entity("mvehicles:tank", {
 		local pos = self.object:get_pos()
 		if staticdata == "" then -- initial activate
 			self.fuel = 15
+			self.turret_name = "default"
 			--~ self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
 		else
 			local s = minetest.deserialize(staticdata) or {}
-			self.fuel = tonumber(s.fuel) or 0
+			self.fuel = tonumber(s.fuel) or 15
+			self.turret_name = s.turret_name or "default"
 		end
-		self.top = minetest.add_entity(pos, "mvehicles:tank_top", "stay")
-		self.top:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
+		local turret_def = registered_turrets[self.turret_name]
+		turret_def.on_activate(self)
 		self.object:set_acceleration(vector.new(0, -gravity, 0))
-		self.can_shoot = true
 		self.cannon_direction_horizontal = self.object:get_yaw()
 		self.cannon_direction_vertical = -90
+		self.shooting_range = 30
+		self.timer = 0
 	end,
 
 	on_death = function(self, killer)
-		self.top:remove()
+		self.turret:remove()
 		minetest.delete_particlespawner(self.exhaust)
 		minetest.sound_stop(self.engine_sound)
 		tnt.boom(vector.round(self.object:get_pos()), {damage_radius=4,radius=3})
@@ -124,6 +78,7 @@ minetest.register_entity("mvehicles:tank", {
 	get_staticdata = function(self)
 		return minetest.serialize({
 			fuel = self.fuel,
+			turret_name = self.turret_name,
 		})
 	end,
 
@@ -208,8 +163,6 @@ minetest.register_entity("mvehicles:tank", {
 			size = { x=50, y=50},
 		})
 
-		self.shooting_range = 30
-
 
 		--[[local shooting_range_2 = ((30 - shooting_range_1)^2)^0.5
 		local shooting_range_1 = shooting_range_1 - math.abs(shooting_range_1 - 30)
@@ -272,21 +225,14 @@ minetest.register_entity("mvehicles:tank", {
 
 
 	on_step = function(self, dtime)
+		self.timer = self.timer + dtime
 		local vel = self.object:get_velocity()
 		if vel.y == 0 and (vel.x ~= 0 or vel.z ~= 0) then
 			vel = vector.new()
 			self.object:set_velocity(vel)
 		end
-		if not self.driver then
+		if not self.driver or self.fuel <= 0 then
 			return
-		end
-		if self.fuel <= 0 then
-			minetest.delete_particlespawner(self.exhaust)
-			minetest.sound_stop(self.engine_sound)
-			--~ minetest.chat_send_all("no fuel, spawn a new tank")
-			return
-		--~ else
-			--~ minetest.chat_send_all(self.fuel)
 		end
 		self.fuel = self.fuel - 0.001 * dtime
 		local yaw = self.object:get_yaw()
@@ -330,33 +276,22 @@ minetest.register_entity("mvehicles:tank", {
 			self.object:set_animation(unpack(anim))
 		end
 
-		if self.top and not ctrl.sneak then
+		local turret_def = registered_turrets[self.turret_name]
+		if self.turret and not ctrl.sneak then
 			local dlh = self.driver:get_look_horizontal()
 			local dlv = self.driver:get_look_vertical()
 			self.cannon_direction_horizontal = dlh
 			self.cannon_direction_vertical = math.max(-100,math.min(-60,(-math.deg(dlv)-90)))
-			self.top:set_bone_position("top_master", {x=0, y=0, z=0},
+			self.turret:set_bone_position(turret_def.bones[1], {x=0, y=0, z=0},
 					{x=0, y=math.deg(yaw-dlh), z=0})
-			self.top:set_bone_position("cannon_barrel", {x=0,y=1.2,z=0},
+			self.turret:set_bone_position(turret_def.bones[2], {x=0,y=1.2,z=0},
 					{x=self.cannon_direction_vertical,y=0,z=0})
 		end
 
-		if ctrl.jump and self.can_shoot then
-			local shoot = minetest.add_entity(vector.add(self.object:get_pos(), vector.new(0, 1.2, 0)), "mvehicles:tank_shoot", "stay")
-			shoot:set_velocity(vector.add(vel, {
-				x=(math.cos(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range),
-				y=(math.cos(math.rad(-self.cannon_direction_vertical)))*self.shooting_range,
-				z=(math.sin(self.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-self.cannon_direction_vertical)))*self.shooting_range)
-			}))
-			minetest.sound_play("mvehicles_tank_shoot", {
-				pos = self.object:get_pos(),
-				gain = 0.5,
-				max_hear_distance = 32,
-			})
-			self.can_shoot = false
-			minetest.after(3, function()
-				self.can_shoot = true
-			end)
+		if ctrl.jump and (not self.last_shoot_time or
+				self.timer >= self.last_shoot_time + turret_def.shoot_cooldown) then
+			turret_def.shoot(self)
+			self.last_shoot_time = self.timer
 		end
 
 		if self.shooting_range then
@@ -372,5 +307,91 @@ minetest.register_entity("mvehicles:tank", {
 		end
 		self.driver:hud_change(self.shooting_range_hud_l, "number", self.shooting_range_hud_1)
 		self.driver:hud_change(self.shooting_range_hud_r, "number", self.shooting_range_hud_2)
+
+		if self.fuel <= 0 then
+			self.fuel = 0
+			self.object:set_animation({x=0, y=0}, 0, 0)
+			minetest.delete_particlespawner(self.exhaust)
+			minetest.sound_stop(self.engine_sound)
+			minetest.chat_send_all("no fuel, spawn a new tank")
+		end
+	end,
+})
+
+
+
+mvehicles.register_tank_turret("default", {
+	entity = "mvehicles:tank_top",
+	shoot_cooldown = 3,
+	bones = {"top_master", "cannon_barrel"},
+	shoot = function(tank)
+		local vel = tank.object:get_velocity()
+		local shoot = minetest.add_entity(vector.add(tank.object:get_pos(), vector.new(0, 1.2, 0)), "mvehicles:tank_shoot", "stay")
+		shoot:set_velocity(vector.add(vel, {
+			x=(math.cos(tank.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-tank.cannon_direction_vertical)))*tank.shooting_range),
+			y=(math.cos(math.rad(-tank.cannon_direction_vertical)))*tank.shooting_range,
+			z=(math.sin(tank.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-tank.cannon_direction_vertical)))*tank.shooting_range)
+		}))
+		minetest.sound_play("mvehicles_tank_shoot", {
+			pos = tank.object:get_pos(),
+			gain = 0.5,
+			max_hear_distance = 32,
+		})
+	end,
+})
+
+minetest.register_entity("mvehicles:tank_shoot", {
+	physical = true,
+	collide_with_objects = true,
+	weight = 5,
+	collisionbox = {-0.1,-0.1,-0.1, 0.1,0.1,0.1},
+	visual = "mesh",
+	visual_size = {x=5, y=5},
+	mesh = "mvehicles_tank_shoot.b3d",
+	textures = {"mvehicles_tank_shoot.png"},
+	automatic_rotate = false,
+	automatic_face_movement_dir = 90.0,
+--  ^ automatically set yaw to movement direction; offset in degrees; false to disable
+	automatic_face_movement_max_rotation_per_sec = -1,
+--  ^ limit automatic rotation to this value in degrees per second. values < 0 no limit
+
+	on_activate = function(self, staticdata)
+		if staticdata ~= "stay" then
+			self.object:remove()
+			return
+		end
+		self.object:set_acceleration(vector.new(0, -gravity, 0))
+	end,
+
+	on_step = function(self, dtime)
+		local vel = self.object:get_velocity()
+		if self.oldvel and
+				((self.oldvel.x ~= 0 and vel.x == 0) or
+				(self.oldvel.y ~= 0 and vel.y == 0) or
+				(self.oldvel.z ~= 0 and vel.z == 0)) then
+			tnt.boom(vector.round(self.object:get_pos()), {damage_radius=3,radius=2})
+			self.object:remove()
+			return
+		end
+
+		local rot = -math.deg(math.atan(vel.y/(vel.x^2+vel.z^2)^0.5))
+		self.object:set_animation({x=rot+90, y=rot+90}, 0, 0)
+
+		self.oldvel = vel
+	end
+})
+
+minetest.register_entity("mvehicles:tank_top", {
+	physical = false,
+	weight = 5,
+	collisionbox = {0,0,0, 0,0,0},
+	visual = "mesh",
+	visual_size = {x=1, y=1},
+	mesh = "mvehicles_tank_top.b3d",
+	textures = {"mvehicles_tank.png"},
+	on_activate = function(self, staticdata, dtime_s)
+		if staticdata ~= "stay" then
+			self.object:remove()
+		end
 	end,
 })

@@ -1,0 +1,20 @@
+`mvehicles.register_tank_turret(name, def)`
+def: {
+	entity = "mvehicles:tank_top",
+	shoot_cooldown = 3,
+	bones = {"top_master", "cannon_barrel"},
+	-- horizontal and vertical bone names
+	on_activate = func(tank), --[[
+		`tank` is a luaentity.
+		Shall add and attach `tank.turret`.
+		default:
+		```lua
+		function(tank)
+			tank.turret = minetest.add_entity(tank.object:get_pos(), def.entity, "stay")
+			tank.turret:set_attach(tank.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
+		end
+		```
+		]]
+		shoot = func(tank),
+		-- Called when the tank can shoot and the player presses the shoot key.
+}

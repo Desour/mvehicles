@@ -10,8 +10,9 @@
 local load_time_start = os.clock()
 
 local modname = minetest.get_current_modname()
-
 local path = minetest.get_modpath(modname).. DIR_DELIM
+
+mvehicles = {}
 
 dofile(path.."tank.lua")
 dofile(path.."truck.lua")
