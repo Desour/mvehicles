@@ -39,14 +39,18 @@ minetest.register_entity("mvehicles:tank", {
 		local pos = self.object:get_pos()
 		if staticdata == "" then -- initial activate
 			self.fuel = 15
-			self.turret_name = "default"
+			self.turret_name = "cannon"
 			--~ self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
 		else
 			local s = minetest.deserialize(staticdata) or {}
 			self.fuel = tonumber(s.fuel) or 15
-			self.turret_name = s.turret_name or "default"
+			self.turret_name = s.turret_name
 		end
 		local turret_def = registered_turrets[self.turret_name]
+		if not turret_def then
+			self.turret_name = "cannon"
+			turret_def = registered_turrets[self.turret_name]
+		end
 		turret_def.on_activate(self)
 		self.object:set_acceleration(vector.new(0, -gravity, 0))
 		self.cannon_direction_horizontal = self.object:get_yaw()
@@ -277,7 +281,7 @@ minetest.register_entity("mvehicles:tank", {
 		end
 
 		local turret_def = registered_turrets[self.turret_name]
-		if self.turret and not ctrl.sneak then
+		if self.turret and not (ctrl.sneak or self.static_turret) then
 			local dlh = self.driver:get_look_horizontal()
 			local dlv = self.driver:get_look_vertical()
 			self.cannon_direction_horizontal = dlh
@@ -288,10 +292,16 @@ minetest.register_entity("mvehicles:tank", {
 					{x=self.cannon_direction_vertical,y=0,z=0})
 		end
 
+		local shooted = false
 		if ctrl.jump and (not self.last_shoot_time or
 				self.timer >= self.last_shoot_time + turret_def.shoot_cooldown) then
-			turret_def.shoot(self)
+			shooted = true
+			turret_def.shoot(self, dtime)
 			self.last_shoot_time = self.timer
+		end
+
+		if turret_def.on_step then
+			turret_def.on_step(self, dtime, shooted)
 		end
 
 		if self.shooting_range then
@@ -319,26 +329,6 @@ minetest.register_entity("mvehicles:tank", {
 })
 
 
-
-mvehicles.register_tank_turret("default", {
-	entity = "mvehicles:tank_top",
-	shoot_cooldown = 3,
-	bones = {"top_master", "cannon_barrel"},
-	shoot = function(tank)
-		local vel = tank.object:get_velocity()
-		local shoot = minetest.add_entity(vector.add(tank.object:get_pos(), vector.new(0, 1.2, 0)), "mvehicles:tank_shoot", "stay")
-		shoot:set_velocity(vector.add(vel, {
-			x=(math.cos(tank.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-tank.cannon_direction_vertical)))*tank.shooting_range),
-			y=(math.cos(math.rad(-tank.cannon_direction_vertical)))*tank.shooting_range,
-			z=(math.sin(tank.cannon_direction_horizontal + math.rad(90)))*((math.sin(math.rad(-tank.cannon_direction_vertical)))*tank.shooting_range)
-		}))
-		minetest.sound_play("mvehicles_tank_shoot", {
-			pos = tank.object:get_pos(),
-			gain = 0.5,
-			max_hear_distance = 32,
-		})
-	end,
-})
 
 minetest.register_entity("mvehicles:tank_shoot", {
 	physical = true,
@@ -395,3 +385,55 @@ minetest.register_entity("mvehicles:tank_top", {
 		end
 	end,
 })
+
+mvehicles.register_tank_turret("cannon", {
+	entity = "mvehicles:tank_top",
+	shoot_cooldown = 3,
+	bones = {"top_master", "cannon_barrel"},
+	shoot = function(tank)
+		local vel = tank.object:get_velocity()
+		local shoot = minetest.add_entity(vector.add(tank.object:get_pos(), vector.new(0, 1.2, 0)), "mvehicles:tank_shoot", "stay")
+		shoot:set_velocity(vector.add(vel, {
+			x=math.cos(tank.cannon_direction_horizontal + math.rad(90))*math.sin(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range,
+			y=math.cos(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range,
+			z=math.sin(tank.cannon_direction_horizontal + math.rad(90))*math.sin(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range
+		}))
+		minetest.sound_play("mvehicles_tank_shoot", {
+			pos = tank.object:get_pos(),
+			gain = 0.5,
+			max_hear_distance = 32,
+		})
+	end,
+})
+
+if minetest.get_modpath("carts") then
+	mvehicles.register_tank_turret("railgun", {
+		entity = "mvehicles:tank_top",
+		shoot_cooldown = 0,
+		bones = {"top_master", "cannon_barrel"},
+		shoot = function(tank, dtime)
+			if not tank.railgun_load_start then
+				tank.static_turret = true
+				tank.railgun_load_start = tank.timer
+			elseif math.floor(tank.railgun_load_start-tank.timer) < math.floor(tank.railgun_load_start+dtime-tank.timer) then
+				minetest.chat_send_player(tank.driver:get_player_name(), tostring(math.floor(tank.railgun_load_start-tank.timer+6)))
+			end
+		end,
+		on_step = function(tank, dtime, shooting)
+			if not shooting and tank.railgun_load_start then
+				if tank.timer >= tank.railgun_load_start + 5 then
+					local vel = tank.object:get_velocity()
+					local pos = tank.object:get_pos()
+					local rail = minetest.add_item(pos, ItemStack("carts:rail"))
+					rail:set_velocity(vector.add(vel, {
+						x=math.cos(tank.cannon_direction_horizontal + math.rad(90))*math.sin(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range*2,
+						y=math.cos(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range*2,
+						z=math.sin(tank.cannon_direction_horizontal + math.rad(90))*math.sin(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range*2
+					}))
+				end
+				tank.static_turret = false
+				tank.railgun_load_start = nil
+			end
+		end,
+	})
+end
