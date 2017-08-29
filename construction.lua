@@ -12,30 +12,37 @@ minetest.register_node("mvehicles:constructor", {
 	tiles = {"mvehicles_hull.png^default_mese_crystal.png"},
 	groups = {cracky=2, level=2},
 	sounds = default.node_sound_stone_defaults(),
-
-	on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
-		local p = clicker:get_player_name()
-		minetest.show_formspec(p, "mvehicles:constructor_formspec",
-			"size[8,12]"..
-			"list[current_player;main;0,8;8,4;]" ..
-			"item_image[1,1;2,1;default:mese_crystal]"..
-			--"bgcolor[#0000FF;false]"..
-			--"background[0,0;0,0;gui_formbg.png;true]"..
-			--"pwdfield[4,1;4,1;pass;password]"..
-			"field[4,2;2,1;baum;baum;an]"..
-			"label[0,0;Constructor]"..
-			"vertlabel[0,4;vertical]"..
-			"button[0,0;4,2;touch;you can touch this]"..
-			"image_button[0,1;1,1;default_dirt.png;dirt;d;flase;true;default_dirt.png^default_grass_side.png]"..
-			"button_exit[4,5;2,1;exit;close]"..
-			"textlist[2,2.5;2,1;vehicle;tank,truck;tank;true]"..
-			"tabheader[-1,4;tabs;tank,truck;tank;true;true]"..
-			"dropdown[6,4;2;drop;tank,truck;1]"..
-			"checkbox[6,5;check;bla;true]"..
-			"scrollbar[6,6;2,0.2;horizontal;scroll;200]"..
-			"table[3,5;3,1;tabl;baum,blume;1]"
-			)
-	end
+	on_construct = function(pos)
+		local meta = minetest.get_meta(pos)
+		meta:set_string("formspec",
+			"size[8,4]"..
+			--~ "list[context;turret;3.5,2;1,1;]"..
+			--~ "list[context;base;3.5,3;1,1;]"..
+			--~ "list[current_player;main;0,5;8,4;]"..
+			"button[4,2;3,1;build;Build Tank]"..
+			"button[4,3;3,1;truck;Build Truck]"..
+			"field[1,1;5,1;turret_name;Turret;cannon]"..
+			"field_close_on_enter[turret_name;false]"..
+			default.gui_bg..
+			default.gui_bg_img..
+			default.gui_slots)
+		--~ local inv = meta:get_inventory()
+		--~ inv:set_size("base", 1)
+		--~ inv:set_size("turret", 1)
+	end,
+	on_receive_fields = function(pos, formname, fields, sender)
+		if fields.build then
+			pos.y = pos.y + 1.8
+			minetest.add_entity(pos, "mvehicles:tank", minetest.serialize({
+				fuel = 15,
+				turret_name = fields.turret_name,
+				owner = sender and sender:is_player() and sender:get_player_name() or "",
+			}))
+		elseif fields.truck then
+			pos.y = pos.y + 1.8
+			minetest.add_entity(pos, "mvehicles:truck")
+		end
+	end,
 })
 
 minetest.register_node("mvehicles:hull", {

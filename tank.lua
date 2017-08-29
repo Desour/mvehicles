@@ -9,6 +9,7 @@ _/  |______    ____ |  | __
 
 local registered_turrets = {}
 function mvehicles.register_tank_turret(name, def)
+	def.bones = def.bones or {}
 	def.on_activate = def.on_activate or function(tank)
 		tank.turret = minetest.add_entity(tank.object:get_pos(), def.entity, "stay")
 		tank.turret:set_attach(tank.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
@@ -40,11 +41,13 @@ minetest.register_entity("mvehicles:tank", {
 		if staticdata == "" then -- initial activate
 			self.fuel = 15
 			self.turret_name = "cannon"
+			self.owner = ""
 			--~ self.object:set_armor_groups({level=5, fleshy=100, explody=250, snappy=50})
 		else
 			local s = minetest.deserialize(staticdata) or {}
 			self.fuel = tonumber(s.fuel) or 15
 			self.turret_name = s.turret_name
+			self.owner = s.owner or ""
 		end
 		local turret_def = registered_turrets[self.turret_name]
 		if not turret_def then
@@ -83,6 +86,7 @@ minetest.register_entity("mvehicles:tank", {
 		return minetest.serialize({
 			fuel = self.fuel,
 			turret_name = self.turret_name,
+			owner = self.owner,
 		})
 	end,
 
@@ -248,12 +252,12 @@ minetest.register_entity("mvehicles:tank", {
 			if ctrl.left then
 				yaw = yaw + dtime
 				self.cannon_direction_horizontal = self.cannon_direction_horizontal + dtime
-				anim = {{x=80, y=100}, 30, 0}
+				anim = {{x=80, y=99}, 30, 0}
 				turned = true
 			elseif ctrl.right then
 				self.cannon_direction_horizontal = self.cannon_direction_horizontal - dtime
 				yaw = yaw - dtime
-				anim = {{x=60, y=80}, 30, 0}
+				anim = {{x=60, y=79}, 30, 0}
 				turned = true
 			else
 				anim = {{x=0, y=0}, 0, 0}
@@ -265,12 +269,12 @@ minetest.register_entity("mvehicles:tank", {
 			else
 				if ctrl.up then
 					self.object:set_velocity({x=math.cos(yaw+math.pi/2)*2, y=vel.y, z=math.sin(yaw+math.pi/2)*2})
-					anim = {{x=0, y=20}, 30, 0}
+					anim = {{x=0, y=19}, 30, 0}
 					self.fuel = self.fuel - 0.1*dtime
 					moved = true
 				elseif ctrl.down then
 					self.object:set_velocity({x=math.cos(yaw+math.pi/2)*-1, y=vel.y, z=math.sin(yaw+math.pi/2)*-1})
-					anim = {{x=20, y=40}, 15, 0}
+					anim = {{x=20, y=39}, 15, 0}
 					self.fuel = self.fuel - 0.05*dtime
 					moved = true
 				else
@@ -286,10 +290,14 @@ minetest.register_entity("mvehicles:tank", {
 			local dlv = self.driver:get_look_vertical()
 			self.cannon_direction_horizontal = dlh
 			self.cannon_direction_vertical = math.max(-100,math.min(-60,(-math.deg(dlv)-90)))
-			self.turret:set_bone_position(turret_def.bones[1], {x=0, y=0, z=0},
-					{x=0, y=math.deg(yaw-dlh), z=0})
-			self.turret:set_bone_position(turret_def.bones[2], {x=0,y=1.2,z=0},
-					{x=self.cannon_direction_vertical,y=0,z=0})
+			if turret_def.bones[1] then
+				self.turret:set_bone_position(turret_def.bones[1], {x=0, y=0, z=0},
+						{x=0, y=math.deg(yaw-dlh), z=0})
+			end
+			if turret_def.bones[2] then
+				self.turret:set_bone_position(turret_def.bones[2], {x=0,y=1.2,z=0},
+						{x=self.cannon_direction_vertical,y=0,z=0})
+			end
 		end
 
 		local shooted = false
