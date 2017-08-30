@@ -201,13 +201,12 @@ minetest.register_entity("mvehicles:tank", {
 		local pos = self.object:get_pos()
 		minetest.delete_particlespawner(self.exhaust)
 		minetest.sound_stop(self.engine_sound)
-		local inv_lists = self.inv:get_lists()
-		for i = 1, #inv_lists do
-			local list = inv:get_list(inv_lists[i])
-			for k = 1, #list do
-				minetest.add_item(pos, list[k])
+		for listname, list in pairs(self.inv:get_lists()) do
+			for i = 1, #list do
+				minetest.add_item(pos, list[i])
 			end
 		end
+
 		tnt.boom(vector.round(pos), {damage_radius=4,radius=3})
 		if not self.driver then
 			return
@@ -226,13 +225,10 @@ minetest.register_entity("mvehicles:tank", {
 
 	get_staticdata = function(self)
 		local inv_content = {}
-		local inv_lists = self.inv:get_lists()
-		for i = 1, #inv_lists do
-			local listname = inv_lists[i]
+		for listname, list in pairs(self.inv:get_lists()) do
 			inv_content[listname] = {}
-			local list = inv:get_list(listname)
-			for k = 1, #list do
-				inv_content[listname][i] = list[k]:to_string()
+			for i = 1, #list do
+				inv_content[listname][i] = list[i]:to_string()
 			end
 		end
 		return minetest.serialize({
