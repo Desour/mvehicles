@@ -614,3 +614,29 @@ if minetest.get_modpath("carts") then
 		end,
 	})
 end
+
+mvehicles.register_tank_turret("drill", {
+	entity = "mvehicles:tank_top",
+	shoot_cooldown = 0.5,
+	shoot = function(tank)
+		local dir = minetest.yaw_to_dir(tank.object:get_yaw())
+		local pos = tank.object:get_pos()
+		pos = vector.add(pos, vector.multiply(dir, 2))
+		local less = dir.x > dir.z and "z" or "x"
+		for y = 0, 2 do
+			for i = -1.5, 1.5 do
+				local pos = vector.new(pos)
+				pos.y = pos.y + y
+				pos[less] = pos[less] + i
+				local drops = minetest.get_node_drops(minetest.get_node(pos).name, "")
+				minetest.dig_node(pos)
+				for i = 1, #drops do
+					local leftover = tank.inv:add_item("ammo", drops[i])
+					if not leftover:is_empty() then
+						minetest.item_drop(leftover, tank.driver, pos)
+					end
+				end
+			end
+		end
+	end,
+})
