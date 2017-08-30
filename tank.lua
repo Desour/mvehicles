@@ -20,6 +20,131 @@ end
 
 local gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.81
 
+local function create_id(self)
+	for i, obj in pairs(minetest.object_refs) do
+		if obj == self.object then
+			self.id = i
+			break
+		end
+	end
+end
+
+local function create_inv(self, inv_content)
+	self.inv = minetest.create_detached_inventory("mvehicles:tank"..self.id, {
+		allow_move = function(inv, from_list, from_index, to_list, to_index, count, player)
+			if to_list == "fuel" then
+				local stack = inv:get_stack(from_list, from_index)
+				stack:set_count(count)
+				local output, decremented_input = minetest.get_craft_result({method = "fuel", width = 1, items = {stack}})
+				if output.time == 0 then
+					return 0
+				end
+				return math.floor((100-self.fuel)/output.time)
+			end
+			return count
+		end,
+
+		allow_put = function(inv, listname, index, stack, player)
+			if listname == "fuel" then
+				local output, decremented_input = minetest.get_craft_result({method = "fuel", width = 1, items = {stack}})
+				if output.time == 0 then
+					return 0
+				end
+				return math.floor((100-self.fuel)/output.time)
+			end
+			return stack:get_count()
+		end,
+
+		--~ allow_take = func(inv, listname, index, stack, player),
+	--~ --  ^ Called when a player wants to take something out of the inventory
+	--~ --  ^ Return value: number of items allowed to take
+	--~ --  ^ Return value: -1: Allow and don't modify item count in inventory
+
+		on_move = function(inv, from_list, from_index, to_list, to_index, count, player)
+			if to_list == "fuel" then
+				local stack = inv:get_stack(to_list, to_index)
+				stack:set_count(count)
+				local player_inv = player:get_inventory()
+				local pos = player:get_pos()
+				local input = {method = "fuel", width = 1, items = {stack}}
+				repeat
+					local output
+					output, input = minetest.get_craft_result(input)
+					if output.time == 0 then
+						break
+					end
+					self.fuel = self.fuel + output.time
+					local player_inv = player:get_inventory()
+					if output.item then
+						local lo = player_inv:add_item("main", output.item)
+						if not lo:is_empty() then
+							minetest.item_drop(lo, player, pos)
+						end
+					end
+					for i = 1, #output.replacements do
+						local lo = player_inv:add_item("main", output.replacements[i])
+						if not lo:is_empty() then
+							minetest.item_drop(lo, player, pos)
+						end
+					end
+				until input.items[1]:is_empty()
+				inv:set_stack("fuel", to_index, ItemStack(nil))
+				local lo = player_inv:add_item("main", input.items[1])
+				if not lo:is_empty() then
+					minetest.item_drop(lo, player, pos)
+				end
+				return
+			end
+		end,
+
+		on_put = function(inv, listname, index, stack, player)
+			if listname == "fuel" then
+				local player_inv = player:get_inventory()
+				local pos = player:get_pos()
+				local input = {method = "fuel", width = 1, items = {stack}}
+				repeat
+					local output
+					output, input = minetest.get_craft_result(input)
+					if output.time == 0 then
+						break
+					end
+					self.fuel = self.fuel + output.time
+					local player_inv = player:get_inventory()
+					if output.item then
+						local lo = player_inv:add_item("main", output.item)
+						if not lo:is_empty() then
+							minetest.item_drop(lo, player, pos)
+						end
+					end
+					for i = 1, #output.replacements do
+						local lo = player_inv:add_item("main", output.replacements[i])
+						if not lo:is_empty() then
+							minetest.item_drop(lo, player, pos)
+						end
+					end
+				until input.items[1]:is_empty()
+				inv:set_stack("fuel", index, ItemStack(nil))
+				local lo = player_inv:add_item("main", input.items[1])
+				if not lo:is_empty() then
+					minetest.item_drop(lo, player, pos)
+				end
+				return
+			end
+		end,
+
+		--~ on_take = func(inv, listname, index, stack, player),
+	--~ --  ^ Called after the actual action has happened, according to what was allowed.
+	--~ --  ^ No return value
+	})
+	self.inv:set_size("fuel", 1)
+	self.inv:set_size("ammo", 2*4)
+	for listname, list in pairs(inv_content) do
+		for i = 1, #list do
+			list[i] = ItemStack(list[i])
+		end
+		self.inv:set_list(listname, list)
+	end
+end
 
 minetest.register_entity("mvehicles:tank", {
 	hp_max = 10,
@@ -37,7 +162,7 @@ minetest.register_entity("mvehicles:tank", {
 
 
 	on_activate = function(self, staticdata)
-		local pos = self.object:get_pos()
+		local inv_content
 		if staticdata == "" then -- initial activate
 			self.fuel = 15
 			self.turret_name = "cannon"
@@ -49,71 +174,14 @@ minetest.register_entity("mvehicles:tank", {
 			self.turret_name = s.turret_name
 			self.owner = s.owner or ""
 			self.id = s.id
+			inv_content = s.inv_content
 		end
 		if not self.id then
-			for i, obj in pairs(minetest.object_refs) do
-				if obj == self.object then
-					self.id = i
-					break
-				end
-			end
+			create_id(self)
 		end
 		self.inv = minetest.get_inventory({type="detached", name="mvehicles:tank"..self.id})
 		if not self.inv then
-			self.inv = minetest.create_detached_inventory("mvehicles:tank"..self.id, {
-				--~ allow_move = func(inv, from_list, from_index, to_list, to_index, count, player),
-			--~ --  ^ Called when a player wants to move items inside the inventory
-			--~ --  ^ Return value: number of items allowed to move
-
-				allow_put = function(inv, listname, index, stack, player)
-					if listname == "fuel" then
-						local output, decremented_input = minetest.get_craft_result({method = "fuel", width = 1, items = {stack}})
-						if output.time == 0 then
-							return 0
-						end
-						return math.floor((100-self.fuel)/output.time)
-					end
-				end,
-			--  ^ Called when a player wants to put something into the inventory
-			--  ^ Return value: number of items allowed to put
-			--  ^ Return value: -1: Allow and don't modify item count in inventory
-
-				--~ allow_take = func(inv, listname, index, stack, player),
-			--~ --  ^ Called when a player wants to take something out of the inventory
-			--~ --  ^ Return value: number of items allowed to take
-			--~ --  ^ Return value: -1: Allow and don't modify item count in inventory
-
-				--~ on_move = func(inv, from_list, from_index, to_list, to_index, count, player),
-				on_put = function(inv, listname, index, stack, player)
-					if listname == "fuel" then
-						local player_inv = player:get_inventory()
-						local input = {method = "fuel", width = 1, items = {stack}}
-						repeat
-							local output
-							output, input = minetest.get_craft_result(input)
-							if output.time == 0 then
-								break
-							end
-							self.fuel = self.fuel + output.time
-							local player_inv = player:get_inventory()
-							if output.item then
-								player_inv:add_item("main", output.item)
-							end
-							for i = 1, #output.replacements do
-								player_inv:add_item("main", output.replacements[i])
-							end
-						until input.items[1]:is_empty()
-						inv:set_stack("fuel", index, ItemStack(nil))
-						player_inv:add_item("main", input.items[1])
-						return
-					end
-				end,
-				--~ on_take = func(inv, listname, index, stack, player),
-			--~ --  ^ Called after the actual action has happened, according to what was allowed.
-			--~ --  ^ No return value
-			})
-			self.inv:set_size("fuel", 1)
-			self.inv:set_size("ammunation", 4*2)
+			create_inv(self, inv_content or {})
 		end
 		local turret_def = registered_turrets[self.turret_name]
 		if not turret_def then
@@ -130,9 +198,17 @@ minetest.register_entity("mvehicles:tank", {
 
 	on_death = function(self, killer)
 		self.turret:remove()
+		local pos = self.object:get_pos()
 		minetest.delete_particlespawner(self.exhaust)
 		minetest.sound_stop(self.engine_sound)
-		tnt.boom(vector.round(self.object:get_pos()), {damage_radius=4,radius=3})
+		local inv_lists = self.inv:get_lists()
+		for i = 1, #inv_lists do
+			local list = inv:get_list(inv_lists[i])
+			for k = 1, #list do
+				minetest.add_item(pos, list[k])
+			end
+		end
+		tnt.boom(vector.round(pos), {damage_radius=4,radius=3})
 		if not self.driver then
 			return
 		end
@@ -149,11 +225,22 @@ minetest.register_entity("mvehicles:tank", {
 	end,
 
 	get_staticdata = function(self)
+		local inv_content = {}
+		local inv_lists = self.inv:get_lists()
+		for i = 1, #inv_lists do
+			local listname = inv_lists[i]
+			inv_content[listname] = {}
+			local list = inv:get_list(listname)
+			for k = 1, #list do
+				inv_content[listname][i] = list[k]:to_string()
+			end
+		end
 		return minetest.serialize({
 			fuel = self.fuel,
 			turret_name = self.turret_name,
 			owner = self.owner,
 			id = self.id,
+			inv_content = inv_content,
 		})
 	end,
 
@@ -166,6 +253,11 @@ minetest.register_entity("mvehicles:tank", {
 				"size[8,9]"..
 				"list[current_player;main;0,5;8,4;]"..
 				"list[detached:mvehicles:tank"..self.id..";fuel;0,0;1,1;]"..
+				"label[0.2,0.9;fuel]"..
+				"list[detached:mvehicles:tank"..self.id..";ammo;5,0.5;2,4;]"..
+				"vertlabel[7,1;ammunation]"..
+				"listring[current_player;main]"..
+				"listring[detached:mvehicles:tank"..self.id..";ammo]"..
 				default.gui_bg..
 				default.gui_bg_img..
 				default.gui_slots)
