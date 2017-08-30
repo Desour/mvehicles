@@ -48,6 +48,72 @@ minetest.register_entity("mvehicles:tank", {
 			self.fuel = tonumber(s.fuel) or 15
 			self.turret_name = s.turret_name
 			self.owner = s.owner or ""
+			self.id = s.id
+		end
+		if not self.id then
+			for i, obj in pairs(minetest.object_refs) do
+				if obj == self.object then
+					self.id = i
+					break
+				end
+			end
+		end
+		self.inv = minetest.get_inventory({type="detached", name="mvehicles:tank"..self.id})
+		if not self.inv then
+			self.inv = minetest.create_detached_inventory("mvehicles:tank"..self.id, {
+				--~ allow_move = func(inv, from_list, from_index, to_list, to_index, count, player),
+			--~ --  ^ Called when a player wants to move items inside the inventory
+			--~ --  ^ Return value: number of items allowed to move
+
+				allow_put = function(inv, listname, index, stack, player)
+					if listname == "fuel" then
+						local output, decremented_input = minetest.get_craft_result({method = "fuel", width = 1, items = {stack}})
+						if output.time == 0 then
+							return 0
+						end
+						return math.floor((100-self.fuel)/output.time)
+					end
+				end,
+			--  ^ Called when a player wants to put something into the inventory
+			--  ^ Return value: number of items allowed to put
+			--  ^ Return value: -1: Allow and don't modify item count in inventory
+
+				--~ allow_take = func(inv, listname, index, stack, player),
+			--~ --  ^ Called when a player wants to take something out of the inventory
+			--~ --  ^ Return value: number of items allowed to take
+			--~ --  ^ Return value: -1: Allow and don't modify item count in inventory
+
+				--~ on_move = func(inv, from_list, from_index, to_list, to_index, count, player),
+				on_put = function(inv, listname, index, stack, player)
+					if listname == "fuel" then
+						local player_inv = player:get_inventory()
+						local input = {method = "fuel", width = 1, items = {stack}}
+						repeat
+							local output
+							output, input = minetest.get_craft_result(input)
+							if output.time == 0 then
+								break
+							end
+							self.fuel = self.fuel + output.time
+							local player_inv = player:get_inventory()
+							if output.item then
+								player_inv:add_item("main", output.item)
+							end
+							for i = 1, #output.replacements do
+								player_inv:add_item("main", output.replacements[i])
+							end
+						until input.items[1]:is_empty()
+						inv:set_stack("fuel", index, ItemStack(nil))
+						player_inv:add_item("main", input.items[1])
+						return
+					end
+				end,
+				--~ on_take = func(inv, listname, index, stack, player),
+			--~ --  ^ Called after the actual action has happened, according to what was allowed.
+			--~ --  ^ No return value
+			})
+			self.inv:set_size("fuel", 1)
+			self.inv:set_size("ammunation", 4*2)
 		end
 		local turret_def = registered_turrets[self.turret_name]
 		if not turret_def then
@@ -87,11 +153,22 @@ minetest.register_entity("mvehicles:tank", {
 			fuel = self.fuel,
 			turret_name = self.turret_name,
 			owner = self.owner,
+			id = self.id,
 		})
 	end,
 
 	on_rightclick = function(self, clicker)
 		if not clicker or not clicker:is_player() then
+			return
+		end
+		if clicker:get_player_control().aux1 then
+			minetest.show_formspec(clicker:get_player_name(), "mvehicles:tank"..self.id,
+				"size[8,9]"..
+				"list[current_player;main;0,5;8,4;]"..
+				"list[detached:mvehicles:tank"..self.id..";fuel;0,0;1,1;]"..
+				default.gui_bg..
+				default.gui_bg_img..
+				default.gui_slots)
 			return
 		end
 		if clicker == self.driver then
