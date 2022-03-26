@@ -46,7 +46,7 @@ minetest.register_entity("mvehicles:truck", {
 		elseif not self.driver and not clicker:get_attach() then
 			self.driver = clicker
 			player_api.player_attached[self.driver:get_player_name()] = true
-			self.driver:set_attach(self.object, "", {x=-0.5,y=0.8,z=0.7}, {x=0,y=0,z=0})
+			self.driver:set_attach(self.object, "", {x=-0.5,y=0.2,z=0.7}, {x=0,y=0,z=0})
 			self.driver:set_properties({visual_size = {x=0.1, y=0.1}})
 			self.driver:set_eye_offset({x=-5,y=-1,z=11}, {x=0,y=10,z=-3})
 			self.driver:set_animation({x=81, y=161}, 15, 0)
@@ -61,7 +61,7 @@ minetest.register_entity("mvehicles:truck", {
 	end,
 
 	on_step = function(self, dtime)
-		local pos = self.object:get_pos()
+		--~ local pos = self.object:get_pos()
 		local vel = self.object:get_velocity()
 		--[[if vel.y == 0 and (vel.x ~= 0 or vel.z ~= 0) then
 			self.object:set_velocity({x=0, y=0, z=0})
@@ -112,20 +112,27 @@ minetest.register_entity("mvehicles:truck", {
 		else
 			moved = false
 		end
+		-- turn wheels
 		if ctrl.left then
-			local yaw_n = dtime*((vel.x^2 + vel.z^2)^0.5)/10
-			self.object:set_yaw(yaw+yaw_n)
-			self.object:set_pos(pos)
 			self.anim_t = 80
-			turned = true
 		elseif ctrl.right then
-			local yaw_n = dtime*((vel.x^2 + vel.z^2)^0.5)/10
-			self.object:set_yaw(yaw-yaw_n)
-			self.object:set_pos(pos)
 			self.anim_t = 40
-			turned = true
 		else
 			self.anim_t = 0
+		end
+		local steer_dir = ctrl.left and 1
+				or ctrl.right and -1
+				or 0
+		local forward = minetest.yaw_to_dir(yaw)
+		if vector.dot(forward, vel) < 0 then -- driving backwards
+			steer_dir = -steer_dir
+		end
+		if steer_dir ~= 0 then
+			local yaw_n = dtime*math.sqrt(vel.x^2 + vel.z^2)*0.1
+			self.object:set_yaw(yaw+steer_dir*yaw_n)
+			--~ self.object:set_pos(pos)
+			turned = true
+		else
 			turned = false
 		end
 	end

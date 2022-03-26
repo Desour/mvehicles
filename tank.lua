@@ -282,7 +282,7 @@ minetest.register_entity("mvehicles:tank", {
 		end
 		self.driver = clicker
 		player_api.player_attached[self.driver:get_player_name()] = true
-		self.driver:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
+		self.driver:set_attach(self.object, "", {x=0,y=-0.55,z=0}, {x=0,y=0,z=0})
 		self.driver:set_properties({visual_size = {x=0.1, y=0.1}})
 		self.driver:set_eye_offset({x=0,y=2,z=0}, {x=0,y=10,z=-3})
 		default.player_set_animation(self.driver, "sit")
@@ -587,7 +587,7 @@ mvehicles.register_tank_turret("cannon", {
 			pos = tank.object:get_pos(),
 			gain = 0.5,
 			max_hear_distance = 32,
-		})
+		}, true)
 	end,
 })
 
