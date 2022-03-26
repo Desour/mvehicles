@@ -1,21 +1,21 @@
 Licenses for Textures, Sounds and Models
 ---------------------------------------
 if the lava can is one of the older textures in technic mod then "mvehicles_fuel_can.png" is licensed:
-sdzen (Elise Staudter) (CC BY-SA 3.0), edited by DS-minetest
+sdzen (Elise Staudter) (CC BY-SA 3.0), edited by DS
 https://creativecommons.org/licenses/by-sa/3.0/
 
 "mvhicles_engine.ogg":
-by EnduringAutomotive (CC BY 3.0), shortened and exported by DS-minetest
+by EnduringAutomotive (CC BY 3.0), shortened and exported by DS
 original: http://www.freesound.org/people/EnduringAutomotive/sounds/170248/#
 license: https://creativecommons.org/licenses/by/3.0/
 
 "mvehicles_tank_shoot." .. 1-3 .. ".ogg":
-by qubodup (CC0 1.0), splited up and exported by DS-minetest
+by qubodup (CC0 1.0), splited up and exported by DS
 original: http://www.freesound.org/people/qubodup/sounds/184382/
 license: http://creativecommons.org/publicdomain/zero/1.0/
 
 Everything else:
-DS-minetest (CC-BY-SA 3.0)
+DS (CC-BY-SA 3.0)
 license: https://creativecommons.org/licenses/by-sa/3.0/
 
 --------------------------------------
