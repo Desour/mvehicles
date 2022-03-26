@@ -16,7 +16,7 @@ minetest.register_entity("mvehicles:truck", {
 	initial_sprite_basepos = {x=0, y=0},
 	is_visible = true,
 	makes_footstep_sound = false,
-	automatic_rotate = false,
+	automatic_rotate = 0,
 	stepheight = 1.5,
 	--automatic_face_movement_dir = 0.0,
 --  ^ automatically set yaw to movement direction; offset in degrees; false to disable

@@ -147,7 +147,7 @@ minetest.register_entity("mvehicles:tank", {
 	mesh = "mvehicles_tank_bottom.b3d",
 	textures = {"mvehicles_tank.png"},
 	makes_footstep_sound = false,
-	automatic_rotate = false,
+	automatic_rotate = 0,
 	stepheight = 1.5,
 
 
@@ -186,32 +186,38 @@ minetest.register_entity("mvehicles:tank", {
 		self.timer = 0
 	end,
 
-	on_death = function(self, killer)
-		self.turret:remove()
-		local pos = self.object:get_pos()
-		minetest.delete_particlespawner(self.exhaust)
-		minetest.sound_stop(self.engine_sound)
-		for _listname, list in pairs(self.inv:get_lists()) do
-			for i = 1, #list do
-				minetest.add_item(pos, list[i])
-			end
-		end
+	--~ on_death = function(self, killer)
+		--~ self.turret:remove()
+		--~ local pos = self.object:get_pos()
+		--~ if self.exhaust then
+			--~ minetest.delete_particlespawner(self.exhaust)
+			--~ self.exhaust = nil
+		--~ end
+		--~ if self.engine_sound then
+			--~ minetest.sound_stop(self.engine_sound)
+			--~ self.engine_sound = nil
+		--~ end
+		--~ for _listname, list in pairs(self.inv:get_lists()) do
+			--~ for i = 1, #list do
+				--~ minetest.add_item(pos, list[i])
+			--~ end
+		--~ end
 
-		tnt.boom(vector.round(pos), {damage_radius=4,radius=3})
-		if not self.driver then
-			return
-		end
-		self.driver:set_detach()
-		self.driver:set_properties({visual_size = {x=1, y=1}})
-		self.driver:set_eye_offset({x=0,y=0,z=0}, {x=0,y=0,z=0})
-		default.player_set_animation(self.driver, "stand")
-		self.driver:hud_remove(self.fuel_hud_l)
-		self.driver:hud_remove(self.fuel_hud_r)
-		self.driver:hud_remove(self.shooting_range_hud_l)
-		self.driver:hud_remove(self.shooting_range_hud_r)
-		player_api.player_attached[self.driver:get_player_name()] = false
-		self.driver:set_hp(0)
-	end,
+		--~ tnt.boom(vector.round(pos), {damage_radius=4,radius=3})
+		--~ if not self.driver then
+			--~ return
+		--~ end
+		--~ self.driver:set_detach()
+		--~ self.driver:set_properties({visual_size = {x=1, y=1}})
+		--~ self.driver:set_eye_offset({x=0,y=0,z=0}, {x=0,y=0,z=0})
+		--~ default.player_set_animation(self.driver, "stand")
+		--~ self.driver:hud_remove(self.fuel_hud_l)
+		--~ self.driver:hud_remove(self.fuel_hud_r)
+		--~ self.driver:hud_remove(self.shooting_range_hud_l)
+		--~ self.driver:hud_remove(self.shooting_range_hud_r)
+		--~ player_api.player_attached[self.driver:get_player_name()] = false
+		--~ self.driver:set_hp(0)
+	--~ end,
 
 	get_staticdata = function(self)
 		local inv_content = {}
@@ -255,8 +261,14 @@ minetest.register_entity("mvehicles:tank", {
 			self.driver:set_eye_offset({x=0,y=0,z=0}, {x=0,y=0,z=0})
 			self.object:set_animation({x=0, y=0}, 0, 0)
 			default.player_set_animation(self.driver, "stand")
-			minetest.delete_particlespawner(self.exhaust)
-			minetest.sound_stop(self.engine_sound)
+			if self.exhaust then
+				minetest.delete_particlespawner(self.exhaust)
+				self.exhaust = nil
+			end
+			if self.engine_sound then
+				minetest.sound_stop(self.engine_sound)
+				self.engine_sound = nil
+			end
 			self.driver:hud_remove(self.fuel_hud_l)
 			self.driver:hud_remove(self.fuel_hud_r)
 			self.driver:hud_remove(self.shooting_range_hud_l)
@@ -484,8 +496,14 @@ minetest.register_entity("mvehicles:tank", {
 		if self.fuel <= 0 then
 			self.fuel = 0
 			self.object:set_animation({x=0, y=0}, 0, 0)
-			minetest.delete_particlespawner(self.exhaust)
-			minetest.sound_stop(self.engine_sound)
+			if self.exhaust then
+				minetest.delete_particlespawner(self.exhaust)
+				self.exhaust = nil
+			end
+			if self.engine_sound then
+				minetest.sound_stop(self.engine_sound)
+				self.engine_sound = nil
+			end
 			minetest.chat_send_all("no fuel, spawn a new tank")
 		end
 	end,
@@ -502,7 +520,7 @@ minetest.register_entity("mvehicles:tank_shoot", {
 	visual_size = {x=5, y=5},
 	mesh = "mvehicles_tank_shoot.b3d",
 	textures = {"mvehicles_tank_shoot.png"},
-	automatic_rotate = false,
+	automatic_rotate = 0,
 	automatic_face_movement_dir = 90.0,
 --  ^ automatically set yaw to movement direction; offset in degrees; false to disable
 	automatic_face_movement_max_rotation_per_sec = -1,
