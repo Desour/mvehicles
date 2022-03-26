@@ -1,11 +1,3 @@
---[[
-                              __                        __  .__
-  ____  ____   ____   _______/  |________ __ __   _____/  |_|__| ____   ____
-_/ ___\/  _ \ /    \ /  ___/\   __\_  __ \  |  \_/ ___\   __\  |/  _ \ /    \
-\  \__(  <_> )   |  \\___ \  |  |  |  | \/  |  /\  \___|  | |  (  <_> )   |  \
- \___  >____/|___|  /____  > |__|  |__|  |____/  \___  >__| |__|\____/|___|  /
-     \/           \/     \/                          \/                    \/
---]]
 
 minetest.register_node("mvehicles:constructor", {
 	description = "constructor",
@@ -53,12 +45,12 @@ minetest.register_node("mvehicles:hull", {
 })
 
 stairs.register_slab(
-		"hull",
-		"mvehicles:hull",
-		{cracky=2, level=2},
-		{"mvehicles_hull.png"},
-		"Pine Wood Slab",
-		default.node_sound_stone_defaults()
+	"hull",
+	"mvehicles:hull",
+	{cracky=2, level=2},
+	{"mvehicles_hull.png"},
+	"Pine Wood Slab",
+	default.node_sound_stone_defaults()
 )
 
 minetest.register_node("mvehicles:tank_tracks", {

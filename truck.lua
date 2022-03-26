@@ -1,11 +1,3 @@
---[[
-  __                        __
-_/  |________ __ __   ____ |  | __
-\   __\_  __ \  |  \_/ ___\|  |/ /
- |  |  |  | \/  |  /\  \___|    <
- |__|  |__|  |____/  \___  >__|_ \
-                         \/     \/
-]]
 
 local gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.81
 
@@ -39,7 +31,7 @@ minetest.register_entity("mvehicles:truck", {
 		self.antiforce = 1
 	end,
 
-	on_rightclick =function(self, clicker)
+	on_rightclick = function(self, clicker)
 		if not clicker or not clicker:is_player() then
 			return
 		end
@@ -49,11 +41,11 @@ minetest.register_entity("mvehicles:truck", {
 			self.driver:set_eye_offset({x=0,y=0,z=0}, {x=0,y=0,z=0})
 			self.object:set_animation({x=0, y=0}, 0, 0)
 			minetest.sound_stop(self.engine_sound)
-			default.player_attached[self.driver:get_player_name()] = false
+			player_api.player_attached[self.driver:get_player_name()] = false
 			self.driver = nil
 		elseif not self.driver and not clicker:get_attach() then
 			self.driver = clicker
-			default.player_attached[self.driver:get_player_name()] = true
+			player_api.player_attached[self.driver:get_player_name()] = true
 			self.driver:set_attach(self.object, "", {x=-0.5,y=0.8,z=0.7}, {x=0,y=0,z=0})
 			self.driver:set_properties({visual_size = {x=0.1, y=0.1}})
 			self.driver:set_eye_offset({x=-5,y=-1,z=11}, {x=0,y=10,z=-3})
@@ -71,7 +63,6 @@ minetest.register_entity("mvehicles:truck", {
 	on_step = function(self, dtime)
 		local pos = self.object:get_pos()
 		local vel = self.object:get_velocity()
-		local acc = self.object:get_acceleration()
 		--[[if vel.y == 0 and (vel.x ~= 0 or vel.z ~= 0) then
 			self.object:set_velocity({x=0, y=0, z=0})
 		end]]
@@ -96,18 +87,26 @@ minetest.register_entity("mvehicles:truck", {
 		end
 		local yaw = self.object:get_yaw()
 		local ctrl = self.driver:get_player_control()
-		local turned
-		local moved
+		local turned -- luacheck: ignore
+		local moved -- luacheck: ignore
 		if ctrl.sneak then
 			self.antiforce = 0.8
 			--~ self.object:set_velocity({x=0,y=vel.y,z=0})
 			moved = false
 		elseif ctrl.up then
-			self.object:set_velocity(vector.add(vel,{x=math.cos(yaw+math.pi/2)*2*dtime, y=0, z=math.sin(yaw+math.pi/2)*2*dtime}))
+			self.object:set_velocity(vector.add(vel, vector.new(
+					math.cos(yaw+math.pi/2)*2*dtime,
+					0,
+					math.sin(yaw+math.pi/2)*2*dtime
+				)))
 			self.anim_m = 0
 			moved = true
 		elseif ctrl.down then
-			self.object:set_velocity(vector.add(vel,{x=math.cos(yaw+math.pi/2)*-1*dtime, y=0, z=math.sin(yaw+math.pi/2)*-1*dtime}))
+			self.object:set_velocity(vector.add(vel, vector.new(
+					math.cos(yaw+math.pi/2)*-1*dtime,
+					0,
+					math.sin(yaw+math.pi/2)*-1*dtime
+				)))
 			self.anim_m = 20
 			moved = true
 		else

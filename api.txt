@@ -19,3 +19,5 @@ def: {
 		-- Called when the tank can shoot and the player presses the shoot key.
 	on_step = func(tank, dtime, shot),
 }
+
+TODO: use ldoc

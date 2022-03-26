@@ -1,11 +1,3 @@
---[[
-  __                 __
-_/  |______    ____ |  | __
-\   __\__  \  /    \|  |/ /
- |  |  / __ \|   |  \    <
- |__| (____  /___|  /__|_ \
-           \/     \/     \/
-]]
 
 local registered_turrets = {}
 function mvehicles.register_tank_turret(name, def)
@@ -35,7 +27,7 @@ local function create_inv(self, inv_content)
 			if to_list == "fuel" then
 				local stack = inv:get_stack(from_list, from_index)
 				stack:set_count(count)
-				local output, decremented_input = minetest.get_craft_result({method = "fuel", width = 1, items = {stack}})
+				local output, _decremented_input = minetest.get_craft_result({method = "fuel", width = 1, items = {stack}})
 				if output.time == 0 then
 					return 0
 				end
@@ -46,7 +38,7 @@ local function create_inv(self, inv_content)
 
 		allow_put = function(inv, listname, index, stack, player)
 			if listname == "fuel" then
-				local output, decremented_input = minetest.get_craft_result({method = "fuel", width = 1, items = {stack}})
+				local output, _decremented_input = minetest.get_craft_result({method = "fuel", width = 1, items = {stack}})
 				if output.time == 0 then
 					return 0
 				end
@@ -74,7 +66,6 @@ local function create_inv(self, inv_content)
 						break
 					end
 					self.fuel = self.fuel + output.time
-					local player_inv = player:get_inventory()
 					if output.item then
 						local lo = player_inv:add_item("main", output.item)
 						if not lo:is_empty() then
@@ -109,7 +100,6 @@ local function create_inv(self, inv_content)
 						break
 					end
 					self.fuel = self.fuel + output.time
-					local player_inv = player:get_inventory()
 					if output.item then
 						local lo = player_inv:add_item("main", output.item)
 						if not lo:is_empty() then
@@ -201,7 +191,7 @@ minetest.register_entity("mvehicles:tank", {
 		local pos = self.object:get_pos()
 		minetest.delete_particlespawner(self.exhaust)
 		minetest.sound_stop(self.engine_sound)
-		for listname, list in pairs(self.inv:get_lists()) do
+		for _listname, list in pairs(self.inv:get_lists()) do
 			for i = 1, #list do
 				minetest.add_item(pos, list[i])
 			end
@@ -219,7 +209,7 @@ minetest.register_entity("mvehicles:tank", {
 		self.driver:hud_remove(self.fuel_hud_r)
 		self.driver:hud_remove(self.shooting_range_hud_l)
 		self.driver:hud_remove(self.shooting_range_hud_r)
-		default.player_attached[self.driver:get_player_name()] = false
+		player_api.player_attached[self.driver:get_player_name()] = false
 		self.driver:set_hp(0)
 	end,
 
@@ -271,15 +261,15 @@ minetest.register_entity("mvehicles:tank", {
 			self.driver:hud_remove(self.fuel_hud_r)
 			self.driver:hud_remove(self.shooting_range_hud_l)
 			self.driver:hud_remove(self.shooting_range_hud_r)
-			default.player_attached[self.driver:get_player_name()] = false
+			player_api.player_attached[self.driver:get_player_name()] = false
 			self.driver = nil
 			return
 		elseif self.driver or clicker:get_attach() or
-				default.player_attached[clicker:get_player_name()] then
+				player_api.player_attached[clicker:get_player_name()] then
 			return
 		end
 		self.driver = clicker
-		default.player_attached[self.driver:get_player_name()] = true
+		player_api.player_attached[self.driver:get_player_name()] = true
 		self.driver:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 		self.driver:set_properties({visual_size = {x=0.1, y=0.1}})
 		self.driver:set_eye_offset({x=0,y=2,z=0}, {x=0,y=10,z=-3})
@@ -411,7 +401,7 @@ minetest.register_entity("mvehicles:tank", {
 		local yaw = self.object:get_yaw()
 		local ctrl = self.driver:get_player_control()
 		local turned
-		local moved
+		local moved -- luacheck: ignore
 		if vel.y == 0 then
 			local anim
 			if ctrl.left then
@@ -565,12 +555,16 @@ mvehicles.register_tank_turret("cannon", {
 	bones = {"top_master", "cannon_barrel"},
 	shoot = function(tank)
 		local vel = tank.object:get_velocity()
-		local shoot = minetest.add_entity(vector.add(tank.object:get_pos(), vector.new(0, 1.2, 0)), "mvehicles:tank_shoot", "stay")
-		shoot:set_velocity(vector.add(vel, {
-			x=math.cos(tank.cannon_direction_horizontal + math.rad(90))*math.sin(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range,
-			y=math.cos(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range,
-			z=math.sin(tank.cannon_direction_horizontal + math.rad(90))*math.sin(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range
-		}))
+		local shoot = minetest.add_entity(tank.object:get_pos():offset(0, 1.2, 0),
+				"mvehicles:tank_shoot", "stay")
+		-- wtf does this do?
+		shoot:set_velocity(vector.add(vel, vector.new(
+			math.cos(tank.cannon_direction_horizontal + math.rad(90))
+					* math.sin(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range,
+			math.cos(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range,
+			math.sin(tank.cannon_direction_horizontal + math.rad(90))
+					* math.sin(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range
+		)))
 		minetest.sound_play("mvehicles_tank_shoot", {
 			pos = tank.object:get_pos(),
 			gain = 0.5,
@@ -598,11 +592,13 @@ if minetest.get_modpath("carts") then
 					local vel = tank.object:get_velocity()
 					local pos = tank.object:get_pos()
 					local rail = minetest.add_item(pos, ItemStack("carts:rail"))
-					rail:set_velocity(vector.add(vel, {
-						x=math.cos(tank.cannon_direction_horizontal + math.rad(90))*math.sin(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range*2,
-						y=math.cos(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range*2,
-						z=math.sin(tank.cannon_direction_horizontal + math.rad(90))*math.sin(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range*2
-					}))
+					rail:set_velocity(vector.offset(vel,
+						math.cos(tank.cannon_direction_horizontal + math.rad(90))
+								* math.sin(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range*2,
+						math.cos(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range*2,
+						math.sin(tank.cannon_direction_horizontal + math.rad(90))
+								* math.sin(math.rad(-tank.cannon_direction_vertical))*tank.shooting_range*2
+					))
 				end
 				tank.static_turret = false
 				tank.railgun_load_start = nil
@@ -616,18 +612,17 @@ mvehicles.register_tank_turret("drill", {
 	shoot_cooldown = 0.5,
 	shoot = function(tank)
 		local dir = minetest.yaw_to_dir(tank.object:get_yaw())
-		local pos = tank.object:get_pos()
-		pos = vector.add(pos, vector.multiply(dir, 2))
+		local drill_pos = tank.object:get_pos() + dir * 2
 		local less = dir.x > dir.z and "z" or "x"
 		for y = 0, 2 do
 			for i = -1.5, 1.5 do
-				local pos = vector.new(pos)
+				local pos = drill_pos:copy()
 				pos.y = pos.y + y
 				pos[less] = pos[less] + i
 				local drops = minetest.get_node_drops(minetest.get_node(pos).name, "")
 				minetest.dig_node(pos)
-				for i = 1, #drops do
-					local leftover = tank.inv:add_item("ammo", drops[i])
+				for j = 1, #drops do
+					local leftover = tank.inv:add_item("ammo", drops[j])
 					if not leftover:is_empty() then
 						minetest.item_drop(leftover, tank.driver, pos)
 					end
