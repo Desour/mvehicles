@@ -536,6 +536,8 @@ minetest.register_entity("mvehicles:tank_shoot", {
 
 	on_step = function(self, dtime)
 		local vel = self.object:get_velocity()
+
+		-- collision detection
 		if self.oldvel and
 				((self.oldvel.x ~= 0 and vel.x == 0) or
 				(self.oldvel.y ~= 0 and vel.y == 0) or
@@ -545,7 +547,13 @@ minetest.register_entity("mvehicles:tank_shoot", {
 			return
 		end
 
-		local rot = -math.deg(math.atan(vel.y/(vel.x^2+vel.z^2)^0.5))
+		-- rotate in fly direction
+		local rot
+		if math.abs(vel.y) < 1.0e-3 then
+			rot = 0
+		else
+			rot = -math.deg(math.atan2(vel.y, (vel.x^2+vel.z^2)^0.5))
+		end
 		self.object:set_animation({x=rot+90, y=rot+90}, 0, 0)
 
 		self.oldvel = vel
