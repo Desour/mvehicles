@@ -1,5 +1,16 @@
 
+-- compatibility stuff
 local hud_elem_type_key = minetest.features.hud_def_type_field and "type" or "hud_elem_type"
+
+local function set_bone_position(obj, bone, pos, rot)
+	if obj.set_bone_override then
+		pos = {vec = pos, interpolation = 0, absolute = true}
+		rot = {vec = vector.apply(rot, math.rad), interpolation = 0, absolute = true}
+		obj:set_bone_override(bone, {position = pos, rotation = rot})
+	else
+		obj:set_bone_position(bone, pos, rot)
+	end
+end
 
 local registered_turrets = {}
 function mvehicles.register_tank_turret(name, def)
@@ -461,11 +472,11 @@ minetest.register_entity("mvehicles:tank", {
 			self.cannon_direction_horizontal = dlh
 			self.cannon_direction_vertical = math.max(-100,math.min(-60,(-math.deg(dlv)-90)))
 			if turret_def.bones[1] then
-				self.turret:set_bone_position(turret_def.bones[1], {x=0, y=0, z=0},
+				set_bone_position(self.turret, turret_def.bones[1], {x=0, y=0, z=0},
 						{x=0, y=math.deg(yaw-dlh), z=0})
 			end
 			if turret_def.bones[2] then
-				self.turret:set_bone_position(turret_def.bones[2], {x=0,y=1.2,z=0},
+				set_bone_position(self.turret, turret_def.bones[2], {x=0,y=1.2,z=0},
 						{x=self.cannon_direction_vertical,y=0,z=0})
 			end
 		end
