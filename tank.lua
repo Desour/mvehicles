@@ -1,4 +1,6 @@
 
+local hud_elem_type_key = minetest.features.hud_def_type_field and "type" or "hud_elem_type"
+
 local registered_turrets = {}
 function mvehicles.register_tank_turret(name, def)
 	def.bones = def.bones or {}
@@ -306,7 +308,7 @@ minetest.register_entity("mvehicles:tank", {
 		end
 
 		self.fuel_hud_l = self.driver:hud_add({
-			hud_elem_type = "statbar", -- see HUD element types
+			[hud_elem_type_key] = "statbar", -- see HUD element types
 			--  ^ type of HUD element, can be either of "image", "text", "statbar", or "inventory"
 			position = {x=0.01, y=0.89},
 			--  ^ Left corner position of element
@@ -326,7 +328,7 @@ minetest.register_entity("mvehicles:tank", {
 			--  ^ Size of element in pixels
 		})
 		self.fuel_hud_r = self.driver:hud_add({
-			hud_elem_type = "statbar",
+			[hud_elem_type_key] = "statbar",
 			position = {x=0.02, y=0.89},
 			name = "tankhud",
 			scale = {x=2, y=2},
@@ -345,7 +347,7 @@ minetest.register_entity("mvehicles:tank", {
 		local shooting_range_2 = shooting_range_2 - (30 - shooting_range_2)]]
 
 		self.shooting_range_hud_l = self.driver:hud_add({
-			hud_elem_type = "statbar",
+			[hud_elem_type_key] = "statbar",
 			position = {x=0.06, y=0.89},
 			name = "tankhud",
 			scale = {x=2, y=2},
@@ -358,7 +360,7 @@ minetest.register_entity("mvehicles:tank", {
 			size = { x=50, y=50},
 		})
 		self.shooting_range_hud_r = self.driver:hud_add({
-			hud_elem_type = "statbar",
+			[hud_elem_type_key] = "statbar",
 			position = {x=0.07, y=0.89},
 			name = "tankhud",
 			scale = {x=2, y=2},
