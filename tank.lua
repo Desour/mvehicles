@@ -137,19 +137,20 @@ local function create_inv(self, inv_content)
 end
 
 minetest.register_entity("mvehicles:tank", {
-	hp_max = 10,
-	physical = true,
-	collide_with_objects = true,
-	weight = 5,
-	collisionbox = {-1.9,-0.99,-1.9, 1.9,0.3,1.9},
-	visual = "mesh",
-	visual_size = {x=10, y=10},
-	mesh = "mvehicles_tank_bottom.b3d",
-	textures = {"mvehicles_tank.png"},
-	makes_footstep_sound = false,
-	automatic_rotate = 0,
-	stepheight = 1.5,
-
+	initial_properties = {
+		hp_max = 10,
+		physical = true,
+		collide_with_objects = true,
+		weight = 5,
+		collisionbox = {-1.9,-0.99,-1.9, 1.9,0.3,1.9},
+		visual = "mesh",
+		visual_size = {x=10, y=10},
+		mesh = "mvehicles_tank_bottom.b3d",
+		textures = {"mvehicles_tank.png"},
+		makes_footstep_sound = false,
+		automatic_rotate = 0,
+		stepheight = 1.5,
+	},
 
 	on_activate = function(self, staticdata)
 		local inv_content
@@ -512,19 +513,19 @@ minetest.register_entity("mvehicles:tank", {
 
 
 minetest.register_entity("mvehicles:tank_shoot", {
-	physical = true,
-	collide_with_objects = true,
-	weight = 5,
-	collisionbox = {-0.1,-0.1,-0.1, 0.1,0.1,0.1},
-	visual = "mesh",
-	visual_size = {x=5, y=5},
-	mesh = "mvehicles_tank_shoot.b3d",
-	textures = {"mvehicles_tank_shoot.png"},
-	automatic_rotate = 0,
-	automatic_face_movement_dir = 90.0,
---  ^ automatically set yaw to movement direction; offset in degrees; false to disable
-	automatic_face_movement_max_rotation_per_sec = -1,
---  ^ limit automatic rotation to this value in degrees per second. values < 0 no limit
+	initial_properties = {
+		physical = true,
+		collide_with_objects = true,
+		weight = 5,
+		collisionbox = {-0.1,-0.1,-0.1, 0.1,0.1,0.1},
+		visual = "mesh",
+		visual_size = {x=5, y=5},
+		mesh = "mvehicles_tank_shoot.b3d",
+		textures = {"mvehicles_tank_shoot.png"},
+		automatic_rotate = 0,
+		automatic_face_movement_dir = 90.0,
+		automatic_face_movement_max_rotation_per_sec = -1,
+	},
 
 	on_activate = function(self, staticdata)
 		if staticdata ~= "stay" then
@@ -561,13 +562,15 @@ minetest.register_entity("mvehicles:tank_shoot", {
 })
 
 minetest.register_entity("mvehicles:tank_top", {
-	physical = false,
-	weight = 5,
-	collisionbox = {0,0,0, 0,0,0},
-	visual = "mesh",
-	visual_size = {x=1, y=1},
-	mesh = "mvehicles_tank_top.b3d",
-	textures = {"mvehicles_tank.png"},
+	initial_properties = {
+		physical = false,
+		weight = 5,
+		collisionbox = {0,0,0, 0,0,0},
+		visual = "mesh",
+		visual_size = {x=1, y=1},
+		mesh = "mvehicles_tank_top.b3d",
+		textures = {"mvehicles_tank.png"},
+	},
 	on_activate = function(self, staticdata, dtime_s)
 		if staticdata ~= "stay" then
 			self.object:remove()
